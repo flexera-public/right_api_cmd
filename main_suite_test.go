@@ -3,11 +3,7 @@
 package main
 
 import (
-	"log"
-	"net"
-	"net/http"
 	"testing"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
