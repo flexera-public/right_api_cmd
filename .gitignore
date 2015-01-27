@@ -1,0 +1,45 @@
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
+*.so
+*.exe
+
+# Folders
+_obj
+_test
+
+# Architecture specific extensions/prefixes
+*.[568vq]
+[568vq].out
+
+*.cgo1.go
+*.cgo2.c
+_cgo_defun.c
+_cgo_gotypes.go
+_cgo_export.*
+
+_testmain.go
+
+*.test
+
+# vim
+.*.sw[nmop]
+
+.idea
+
+# packaged
+*.bz2
+*.gz
+*.tgz
+*.xz
+
+.s3cfg
+*.coverprofile
+.goxc.*
+rightlink_cmd
+rs_cmd
+ssh_key
+build
+version.go
+*.log
+

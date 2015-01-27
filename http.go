@@ -24,6 +24,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -35,11 +36,17 @@ const requestTimeout = 300 * time.Second // overall timeout for HTTP requests to
 // Client is the handle onto a RightScle client interface.
 // Create a Client object by calling NewClient()
 type Client interface {
-	Get(uri string) (resp *http.Response, err error)
-	Post(uri string, bodyType string, body []byte) (*http.Response, error)
+	Get(uri string, args map[string]interface{}) (resp *http.Response, err error)
+	Post(uri string, args map[string]interface{}) (*http.Response, error)
 	SetInsecure()           // makes the client accept broken ssl certs, used in tests
 	SetDebug(debug bool)    // causes each request and response to be logged
 	RecordHttp(w io.Writer) // starts recording requests/resp to put into tests
+}
+
+type Response struct {
+	statusCode   int
+	errorMessage string
+	data         map[string]interface{}
 }
 
 //===== Client data structure and helper functions
@@ -265,9 +272,36 @@ func logRequest(debug bool, err error, req *http.Request, reqDump []byte, resp *
 
 var noAuthHeader = regexp.MustCompile(`(?im)^Authorization:.*$`)
 
+// construct a queryString from the args, which is a map to strings or arrays of strings, for
+// example: { "view": "expanded", "filter[]": [ "name==my_name", "cloud_href==/api/clouds/1" ] }
+// both the key and the value o fthe map will be URL-encoded
+func queryStringArgs(args map[string]interface{}) string {
+	qs := ""   // query string we're building
+	conn := "" // connector between clauses, i.e., "&" after the first
+	for k, v := range args {
+		if s, ok := v.(string); ok {
+			qs += conn + url.QueryEscape(k) + "=" + url.QueryEscape(s)
+		} else if l, ok := v.([]string); ok {
+			for _, s := range l {
+				qs += conn + url.QueryEscape(k) + "=" + url.QueryEscape(s)
+			}
+		} else {
+			fmt.Fprintf(os.Stderr, "Cannot make query string from %#v", v)
+			os.Exit(1)
+		}
+		conn = "&"
+	}
+	return qs
+}
+
 // Same as http.Client.Get but just pass URI, like /api/instances
-func (c *client) Get(uri string) (resp *http.Response, err error) {
-	req, err := http.NewRequest("GET", c.makeURL(uri), nil)
+func (c *client) Get(uri string, args map[string]interface{}) (resp *http.Response, err error) {
+	uri = c.makeURL(uri)
+	if args != nil {
+		uri += "?" + queryStringArgs(args)
+	}
+
+	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -291,14 +325,18 @@ func (c *client) Get(uri string) (resp *http.Response, err error) {
 }
 
 // Same as http.Client.Post but just pass URI, like /api/instances
-func (c *client) Post(uri string, bodyType string, body []byte) (resp *http.Response, err error) {
-	req, err := http.NewRequest("POST", c.makeURL(uri), bytes.NewReader(body))
+func (c *client) Post(uri string, args map[string]interface{}) (resp *http.Response, err error) {
+	uri = c.makeURL(uri)
+	if args != nil {
+		uri += "?" + queryStringArgs(args)
+	}
+	req, err := http.NewRequest("POST", uri, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	c.setHeaders(req.Header)
-	req.Header.Set("Content-Type", bodyType)
+	//req.Header.Set("Content-Type", bodyType)
 	dump, _ := httputil.DumpRequestOut(req, true)
 	dump = noAuthHeader.ReplaceAll(dump, []byte("Authorization: Bearer <hidden>"))
 
