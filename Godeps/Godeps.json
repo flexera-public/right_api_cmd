@@ -1,10 +1,14 @@
 {
-	"ImportPath": "rs/rightlink_cmd",
+	"ImportPath": "github.com/rightscale/rightlink_cmd",
 	"GoVersion": "go1.4",
 	"Deps": [
 		{
 			"ImportPath": "github.com/alecthomas/units",
 			"Rev": "6b4e7dc5e3143b85ea77909c72caf89416fc2915"
+		},
+		{
+			"ImportPath": "github.com/jmoiron/jsonq",
+			"Rev": "7c27c8eb9f6831555a4209f6a7d579159e766a3c"
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo",

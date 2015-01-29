@@ -19,6 +19,7 @@ package main
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -36,8 +37,9 @@ const requestTimeout = 300 * time.Second // overall timeout for HTTP requests to
 // Client is the handle onto a RightScle client interface.
 // Create a Client object by calling NewClient()
 type Client interface {
-	Get(uri string, args map[string]interface{}) (resp *http.Response, err error)
-	Post(uri string, args map[string]interface{}) (*http.Response, error)
+	Get(uri string, args map[string]interface{}) (*Response, error)
+	Post(uri string, args map[string]interface{}) (*Response, error)
+	Put(uri string, args map[string]interface{}, contentType, content string) (*Response, error)
 	SetInsecure()           // makes the client accept broken ssl certs, used in tests
 	SetDebug(debug bool)    // causes each request and response to be logged
 	RecordHttp(w io.Writer) // starts recording requests/resp to put into tests
@@ -47,6 +49,7 @@ type Response struct {
 	statusCode   int
 	errorMessage string
 	data         map[string]interface{}
+	location     string // value of Location: response header
 }
 
 //===== Client data structure and helper functions
@@ -58,7 +61,7 @@ type client struct {
 	account     string      // RightScale account ID (needed to get cluster redirect)
 	debug       bool        // whether to print request/response bodies
 	authToken   string      // OAuth authentication token used in every request
-	httpServer  string      // FQDN of RightScale HTTP API endpoint
+	httpServer  string      // "http[s]://hostname" for RightScale HTTP API endpoint
 	proxySecret string      // secret required to use HTTP handler/proxy
 	recorder    io.Writer   // where to record req/resp to put into tests
 }
@@ -88,7 +91,7 @@ func (c *client) makeURL(uri string) string {
 	if !strings.HasPrefix(uri, "/") {
 		uri = "/" + uri
 	}
-	return "https://" + c.httpServer + uri
+	return c.httpServer + uri
 }
 
 // Add std headers
@@ -110,29 +113,42 @@ func (c *client) setHeaders(h http.Header) {
 
 var reRllPort = regexp.MustCompile(`RS_RLL_PORT=(\d+)`)
 var reRllSecret = regexp.MustCompile(`RS_RLL_SECRET=([A-Za-z0-9]+)`)
+var reWhere = regexp.MustCompile(`([-A-Za-z0-9.]+):([0-9]+)/([A-Za-z0-9]+)`) // host:port/secret
 
-func NewProxyClient(path string) (Client, error) {
-	// read the file content
-	secrets, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("Error reading proxy secret file %s: %s",
-			path, err.Error())
-	}
+func NewProxyClient(where string) (Client, error) {
+	var rllHost, rllPort, rllSecret string
 
-	// parse file using regexp
-	rllPort := reRllPort.FindSubmatch(secrets)
-	if len(rllPort) != 1 {
-		return nil, fmt.Errorf("Cannot find or parse RS_RLL_PORT in %s", path)
-	}
-	rllSecret := reRllSecret.FindSubmatch(secrets)
-	if len(rllSecret) != 1 {
-		return nil, fmt.Errorf("Cannot find or parse RS_RLL_SECRET in %s", path)
+	if m := reWhere.FindStringSubmatch(where); len(m) == 4 {
+		// explicit info about what to contact
+		rllHost = m[1]
+		rllPort = m[2]
+		rllSecret = m[3]
+	} else {
+		// read file content to get the info
+		secrets, err := ioutil.ReadFile(where)
+		if err != nil {
+			return nil, fmt.Errorf("Error reading proxy secret file %s: %s",
+				where, err.Error())
+		}
+
+		// parse file using regexp
+		p := reRllPort.FindSubmatch(secrets)
+		if len(p) != 1 {
+			return nil, fmt.Errorf("Cannot find or parse RS_RLL_PORT in %s", where)
+		}
+		rllPort = string(p[0])
+		s := reRllSecret.FindSubmatch(secrets)
+		if len(s) != 1 {
+			return nil, fmt.Errorf("Cannot find or parse RS_RLL_SECRET in %s", where)
+		}
+		rllSecret = string(s[0])
+		rllHost = "localhost"
 	}
 
 	// concoct client
 	c := &client{
-		httpServer:  "http://localhost:" + string(rllPort[0]),
-		proxySecret: string(rllSecret[0]),
+		httpServer:  "http://" + rllHost + ":" + rllPort,
+		proxySecret: rllSecret,
 	}
 	c.cl.Timeout = requestTimeout
 	return c, nil
@@ -240,32 +256,32 @@ func logRequest(debug bool, err error, req *http.Request, reqDump []byte, resp *
 	}
 
 	if err != nil { // request didn't happen, got an error
-		logf("HTTP %s '%s' error: %s", req.Method, req.URL.Path, err.Error())
+		logf("HTTP %s '%s' error: %s\n", req.Method, req.URL.Path, err.Error())
 	} else {
 		if resp == nil { // nil response, not much we can log
-			logf("HTTP %s '%s': null response ??", req.Method, req.URL.Path)
+			logf("HTTP %s '%s': null response ??\n", req.Method, req.URL.Path)
 		} else if resp.StatusCode == 301 || resp.StatusCode == 302 { // redirect
-			logf("HTTP %s redirect to %s", req.Method, resp.Header.Get("Location"))
+			logf("HTTP %s redirect to %s\n", req.Method, resp.Header.Get("Location"))
 		} else if resp.StatusCode > 399 { // a real error, log shtuff
-			logf("HTTP %s %s returned %s", req.Method, req.URL.Path, resp.Status)
+			logf("HTTP %s %s returned %s\n", req.Method, req.URL.Path, resp.Status)
 			if debug {
 				// in debug mode dump everything
-				logf("===== REQUEST =====\n%s", reqDump)
+				logf("===== REQUEST =====\n%s\n", reqDump)
 				dump, _ := httputil.DumpResponse(resp, true)
-				logf("===== RESPONSE =====\n%s", dump)
+				logf("===== RESPONSE =====\n%s\n", dump)
 			} else if resp.Body != nil {
 				// in normal mode dump response (should contain error msg)
 				body, err := readBody(resp)
 				if err != nil {
-					logf("HTTP %s %s error reading response body: %s",
+					logf("HTTP %s %s error reading response body: %s\n",
 						req.Method, req.URL.Path, err.Error())
 				} else {
-					logf("HTTP %s response body: %s", req.Method, string(body))
+					logf("HTTP %s response body: %s\n", req.Method, string(body))
 					resp.Body = ioutil.NopCloser(bytes.NewReader(body))
 				}
 			}
 		} else if debug { // 2XX - all ok, only log if debug is set
-			logf("HTTP %s %s -> %s", req.Method, req.URL.Path, resp.Status)
+			logf("HTTP %s %s -> %s\n", req.Method, req.URL.Path, resp.Status)
 		}
 	}
 }
@@ -286,7 +302,7 @@ func queryStringArgs(args map[string]interface{}) string {
 				qs += conn + url.QueryEscape(k) + "=" + url.QueryEscape(s)
 			}
 		} else {
-			fmt.Fprintf(os.Stderr, "Cannot make query string from %#v", v)
+			fmt.Fprintf(os.Stderr, "Cannot make query string from %#v\n", v)
 			os.Exit(1)
 		}
 		conn = "&"
@@ -294,8 +310,49 @@ func queryStringArgs(args map[string]interface{}) string {
 	return qs
 }
 
+func parseResponseBody(body io.Reader) (map[string]interface{}, error) {
+	if body == nil {
+		return nil, nil
+	}
+
+	var data interface{}
+	err := json.NewDecoder(body).Decode(&data)
+	if err == io.EOF {
+		return nil, nil
+	} else if err != nil {
+		return nil, fmt.Errorf("error decoding json: %s", err.Error())
+	}
+	if _, ok := data.(map[string]interface{}); !ok {
+		return nil, fmt.Errorf("response is not a hash: %#v", data)
+	}
+	return data.(map[string]interface{}), nil
+}
+
+func processResponse(req *http.Request, resp *http.Response) (*Response, error) {
+	r := Response{statusCode: resp.StatusCode, location: resp.Header.Get("Location")}
+	if resp.StatusCode >= 200 && resp.StatusCode < 299 {
+		var err error
+		r.data, err = parseResponseBody(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("HTTP %s %s: %s",
+				req.Method, req.URL.Path, err.Error())
+		}
+	} else if resp.Body != nil {
+		body, err := readBody(resp)
+		if err != nil {
+			return nil, fmt.Errorf("HTTP %s %s error reading response body: %s",
+				req.Method, req.URL.Path, err.Error())
+		}
+		r.errorMessage = string(body)
+	} else {
+		r.errorMessage = resp.Status
+	}
+
+	return &r, nil
+}
+
 // Same as http.Client.Get but just pass URI, like /api/instances
-func (c *client) Get(uri string, args map[string]interface{}) (resp *http.Response, err error) {
+func (c *client) Get(uri string, args map[string]interface{}) (*Response, error) {
 	uri = c.makeURL(uri)
 	if args != nil {
 		uri += "?" + queryStringArgs(args)
@@ -311,21 +368,25 @@ func (c *client) Get(uri string, args map[string]interface{}) (resp *http.Respon
 	dump = noAuthHeader.ReplaceAll(dump, []byte("Authorization: Bearer <hidden>"))
 
 	// perform the request
-	resp, err = c.cl.Do(req)
+	resp, err := c.cl.Do(req)
 
 	// recording (ignore errors here)
 	if c.recorder != nil {
-		fmt.Fprintf(c.recorder, "{ \"GET\", \"%s\", \"\", %q }", uri, dump)
+		fmt.Fprintf(c.recorder, "{ \"GET\", \"%s\", \"\", %q }\n", uri, dump)
 	}
 
 	// logging
 	logRequest(c.debug, err, req, dump, resp)
 
-	return
+	if err != nil {
+		return nil, err
+	}
+
+	return processResponse(req, resp)
 }
 
 // Same as http.Client.Post but just pass URI, like /api/instances
-func (c *client) Post(uri string, args map[string]interface{}) (resp *http.Response, err error) {
+func (c *client) Post(uri string, args map[string]interface{}) (*Response, error) {
 	uri = c.makeURL(uri)
 	if args != nil {
 		uri += "?" + queryStringArgs(args)
@@ -341,16 +402,56 @@ func (c *client) Post(uri string, args map[string]interface{}) (resp *http.Respo
 	dump = noAuthHeader.ReplaceAll(dump, []byte("Authorization: Bearer <hidden>"))
 
 	// perform the request
-	resp, err = c.cl.Do(req)
+	resp, err := c.cl.Do(req)
 
 	// recording (ignore errors here)
 	if c.recorder != nil {
 		respBody, _ := readBody(resp)
-		fmt.Fprintf(c.recorder, "{ \"GET\", \"%s\", %q, %q }", uri, dump, respBody)
+		fmt.Fprintf(c.recorder, "{ \"GET\", \"%s\", %q, %q }\n", uri, dump, respBody)
 	}
 
 	// logging
 	logRequest(c.debug, err, req, dump, resp)
 
-	return
+	if err != nil {
+		return nil, err
+	}
+
+	return processResponse(req, resp)
+}
+
+// Same as http.Client.Put but just pass URI, like /api/instances
+func (c *client) Put(uri string, args map[string]interface{}, contentType, content string) (
+	*Response, error) {
+	uri = c.makeURL(uri)
+	if args != nil {
+		uri += "?" + queryStringArgs(args)
+	}
+	req, err := http.NewRequest("PUT", uri, strings.NewReader(content))
+	if err != nil {
+		return nil, err
+	}
+
+	c.setHeaders(req.Header)
+	req.Header.Set("Content-Type", contentType)
+	dump, _ := httputil.DumpRequestOut(req, true)
+	dump = noAuthHeader.ReplaceAll(dump, []byte("Authorization: Bearer <hidden>"))
+
+	// perform the request
+	resp, err := c.cl.Do(req)
+
+	// recording (ignore errors here)
+	if c.recorder != nil {
+		respBody, _ := readBody(resp)
+		fmt.Fprintf(c.recorder, "{ \"GET\", \"%s\", %q, %q }\n", uri, dump, respBody)
+	}
+
+	// logging
+	logRequest(c.debug, err, req, dump, resp)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return processResponse(req, resp)
 }
