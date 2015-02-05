@@ -138,17 +138,18 @@ func NewProxyClient(proxyHost, secret string, debug bool) (Client, error) {
 
 		// parse file using regexp
 		p := reRllPort.FindSubmatch(secrets)
-		if len(p) != 1 {
+		if len(p) != 2 {
 			return nil, fmt.Errorf("Cannot find or parse RS_RLL_PORT in %s",
 				rllSecretPath)
 		}
-		rllPort = string(p[0])
+		rllPort = string(p[1])
+
 		s := reRllSecret.FindSubmatch(secrets)
-		if len(s) != 1 {
+		if len(s) != 2 {
 			return nil, fmt.Errorf("Cannot find or parse RS_RLL_SECRET in %s",
 				rllSecretPath)
 		}
-		rllSecret = string(s[0])
+		rllSecret = string(s[1])
 		rllHost = "localhost"
 	}
 
