@@ -7,8 +7,7 @@ go:
   - 1.4
 env:
   global:
-  - AWS_ACCESS_KEY_ID: "AKIAIX3L4RHHIREAHABQ" # queues&buckets rightscale-binaries-upload user
-    # encrypted AWS_SECRET_ACCESS_KEY:
+    # RSBIN_KEY= to upload to rightscale-binaries bucket in q&b acct:
   - secure: "a9TAGRYM9bf2wfwCZL15+4qKu6siuUQj9G7DyzvNKXq5R7m5b+iHtWXud99/wLmGYly6GVwA7Lco8TrHgwqDCptlYm5nk3bgCeUDP4sLaaui5Er1o7cBA9qH2zSZ0iGwyCU1TBcenuziG1kr8lwJJofZR2Ox7JgKoJuaus2vtMw="
     # GITHUB_TOKEN= to push code coverage comment ot github
   - secure: "HyJrsXL+WJkcL5TA4px0SZL6rY6Ft7IX8R7qq0K99bh9nX2Hl1my3nMY7OqcPE/Q0t0FUvOcq5U1c1wL1PBz9gu4n2Wpz4gU28drnUocFZir2osUOG0QCHrdeaXSKn2zekyCB5puxJleEIZqCh36rR2F8SwCh/88d6poUXFyvxI="
@@ -35,8 +34,8 @@ script:
   - echo $PATH
   - which gof3r
   # Deploy build result to s3
-  - export AWS_ACCESS_KEY_ID=AKIAIH2GBWLUIUE3CDPQ # rightlinklite bucket access
-  - export AWS_SECRET_ACCESS_KEY=${RLL_KEY}
+  - export AWS_ACCESS_KEY_ID=AKIAIX3L4RHHIREAHABQ # rightlinklite bucket access
+  - export AWS_SECRET_ACCESS_KEY=${RSBIN_KEY}
   - make upload
   # Compute code coverage
   - go tool cover -func=$NAME.coverprofile > coverage.txt
