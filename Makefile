@@ -15,7 +15,7 @@
 
 #NAME=$(shell basename $$PWD)
 NAME=rs_cmd
-BUCKET=rightscale_binaries
+BUCKET=rightscale-binaries
 TRAVIS_BRANCH?=dev
 DATE=$(shell date '+%F %T')
 TRAVIS_COMMIT?=$(shell git symbolic-ref HEAD | cut -d"/" -f 3)
