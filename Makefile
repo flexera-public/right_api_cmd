@@ -14,8 +14,10 @@
 #   makefile, instead, we simply add the godep workspace to the GOPATH
 
 #NAME=$(shell basename $$PWD)
-NAME=rs_cmd
+NAME=rs-cmd
 BUCKET=rightscale-binaries
+ACL=public-read
+
 TRAVIS_BRANCH?=dev
 DATE=$(shell date '+%F %T')
 TRAVIS_COMMIT?=$(shell git symbolic-ref HEAD | cut -d"/" -f 3)
@@ -48,9 +50,9 @@ upload: depend
 	@which gof3r >/dev/null || (echo 'Please "go get github.com/rlmcpherson/s3gof3r/gof3r"'; false)
 	(cd build; set -ex; \
 	  for f in *.tgz; do \
-	    gof3r put -b ${BUCKET} -k rsbin/$(NAME)/$(TRAVIS_COMMIT)/$$f <$$f; \
-	    if [[ -z "$(TRAVIS_PULL_REQUEST)" ]]; then \
-	      gof3r put -b ${BUCKET} -k rsbin/$(NAME)/$(TRAVIS_BRANCH)/$$f <$$f; \
+	    gof3r put --no-md5 --acl=$(ACL) -b ${BUCKET} -k rsbin/$(NAME)/$(TRAVIS_COMMIT)/$$f <$$f; \
+	    if [ -z "$(TRAVIS_PULL_REQUEST)" ]; then \
+	      gof3r put --no-md5 --acl=$(ACL) -b ${BUCKET} -k rsbin/$(NAME)/$(TRAVIS_BRANCH)/$$f <$$f; \
 	    fi; \
 	  done)
 
