@@ -8,9 +8,9 @@ go:
 env:
   global:
   - AWS_ACCESS_KEY_ID: "AKIAIABKWOAXEFDZJ5BQ" # test us-3
-    # AWS_SECRET_ACCESS_KEY
+    # encrypted AWS_SECRET_ACCESS_KEY:
   - secure: "CwV0iSnTOVZIBIIv7tTTMTMK43f4ttuyr4Hyro5MGr26o1sLD93XBccgg+sYu/U++Xs1lC5FAS+Q7YWhJP5+WkOsy+KbbI1B5pikDP7Xxa4t0XODESsMRzkMQYxH0u3cJ74SxT5bKYBYx+AhXxLScmOCYkoVJyH6+qXfjbRH/mc="
-    # creds to upload code coverage
+    # GITHUB_TOKEN= to push code coverage comment ot github
   - secure: "HyJrsXL+WJkcL5TA4px0SZL6rY6Ft7IX8R7qq0K99bh9nX2Hl1my3nMY7OqcPE/Q0t0FUvOcq5U1c1wL1PBz9gu4n2Wpz4gU28drnUocFZir2osUOG0QCHrdeaXSKn2zekyCB5puxJleEIZqCh36rR2F8SwCh/88d6poUXFyvxI="
     # COV_KEY= code coverage upload keys
   - secure: "QUrs0MYfT0DN+aDCIfe8WVDRHOlMjYCEZp5/qPk8P100AROijwz+hD1HT5QuO70pD5RvaoI+GIrCb0eiSX48hp/u5bs6PcgD+M+F2M/6HrGDb6Hdo8azi/M0x63f50ku5r+PyhMD/4Ohsjb24HwGl4CKcmzfYJ+w1Ipw1NygkNI="
@@ -47,25 +47,25 @@ script:
   - export FILENAME="$(date +%Y-%m-%d)_${BUILD}_Coverage-${COVERAGE}.txt"
   - mv coverage.txt $FILENAME
   # Post code coverage comment to github
-  - export CODCOV_URL="https://s3.amazonaws.com/rs-code-coverage/rightlinklite/${FILENAME}"
+  - export CODCOV_URL="https://s3.amazonaws.com/rs-code-coverage/${NAME}/${FILENAME}"
   - export JSON_COMMENT="{\"body\":\"Code Coverage is ${COVERAGE}%, details at $CODCOV_URL
     (sometimes the URL can take a few minutes to be available)\"}"
-    #- |
-    #if [[ "${TRAVIS_PULL_REQUEST}" != "false" ]]; then
-    #  curl -XPOST -s -H "Authorization: token ${GITHUB_TOKEN}" \
-    #       -H "Content-Type: application/json" -d "${JSON_COMMENT}" \
-    #       "https://api.github.com/repos/rightscale/rightlinklite/issues/${TRAVIS_PULL_REQUEST}/comments"
-    #fi
+  - |
+    if [[ "${TRAVIS_PULL_REQUEST}" != "false" ]]; then
+      curl -XPOST -s -H "Authorization: token ${GITHUB_TOKEN}" \
+           -H "Content-Type: application/json" -d "${JSON_COMMENT}" \
+           "https://api.github.com/repos/rightscale/${NAME}/issues/${TRAVIS_PULL_REQUEST}/comments"
+    fi
   # Deploy code coverage result to S3
   - export AWS_ACCESS_KEY_ID=AKIAI4RIGBPD3NP2RQ3Q # code coverage bucket access
   - export AWS_SECRET_ACCESS_KEY=${COV_KEY}
-    #- gof3r put -b rs-code-coverage -k rightlinklite/${FILENAME} -m x-amz-acl:public-read < ${FILENAME}
+    - gof3r put -b rs-code-coverage -k ${NAME}/${FILENAME} -m x-amz-acl:public-read < ${FILENAME}
   # Deploy code coverage badge to S3
   - export COVERAGE_INT=$(echo $COVERAGE | cut -d. -f1)
   - export BADGE_FILENAME=cc_badge_${TRAVIS_BRANCH}.svg
   - export BADGE_COLOR=$( if [ ${COVERAGE_INT} -gt 80 ] ; then echo brightgreen ; elif [ ${COVERAGE_INT} -gt 40 ] ; then echo yellow ; else echo red ; fi )
   - wget "http://img.shields.io/badge/coverage-${COVERAGE}%25-${BADGE_COLOR}.svg" -O ${BADGE_FILENAME}
-    #- gof3r put -b rs-code-coverage -k rightlinklite/${BADGE_FILENAME} -m x-amz-acl:public-read -m cache-control:no-cache < ${BADGE_FILENAME}
+  - gof3r put -b rs-code-coverage -k ${NAME}/${BADGE_FILENAME} -m x-amz-acl:public-read -m cache-control:no-cache < ${BADGE_FILENAME}
 
 notifications:
   slack:

@@ -1,9 +1,9 @@
 #! /usr/bin/make
 #
-# Makefile for rest-aws
+# Makefile for Golang projects
 #
 # Top-level targets:
-# default: compile rest-aws, you can thus use make && ./rest-aws -options ...
+# default: compile the program, you can thus use make && ./NAME -options ...
 # build: builds binaries for linux and darwin
 # test: runs unit tests recursively and produces code coverage stats and shows them
 # travis-test: just runs unit tests recursively
@@ -12,14 +12,10 @@
 # HACKS - a couple of things here are unconventional in order to keep travis-ci fast
 # - use 'godep save' on your laptop if you add dependencies, but we don't use godep in the
 #   makefile, instead, we simply add the godep workspace to the GOPATH
-# - the godep workspace has the source for `go cover`, `ginkgo`, and `go3fr` so we don't have
-#   to go get them each time, if you blow away ./Godeps then use `make depend` to put them back
-# - we have ginkgo in the Godep workspace, the build binary gets put there, so we need the
-#   workspace bin directory in the path
-# - we have go cover in the Godep workspace, the build binary needs to go into the go tools dir
 
-NAME=rightlink_cmd
-BUCKET=rightlinklite
+#NAME=$(shell basename $$PWD)
+NAME=rs_cmd
+BUCKET=rightscale_binaries
 TRAVIS_BRANCH?=dev
 DATE=$(shell date '+%F %T')
 TRAVIS_COMMIT?=$(shell git symbolic-ref HEAD | cut -d"/" -f 3)
@@ -33,36 +29,30 @@ default: $(NAME)
 $(NAME): *.go version depend
 	go build -o $(NAME) .
 
-# the standard build produces a linux tgz
-build: build/$(NAME) # .tgz
+# the standard build produces a "local" executable and a linux tgz
+build: $(NAME) build/$(NAME)-linux-amd64.tgz
 
-# TODO: convert from RLL...
-build/$(NAME).tgz: build/$(NAME)
+# create a tgz with the binary and any artifacts that are necessary
+build/$(NAME)-linux-amd64.tgz: *.go version depend
 	rm -rf build/$(NAME)
 	mkdir -p build/$(NAME)
-	#cp script/rightlinklite* build/rll
-	cp build/$(NAME) build/$(NAME)
-	sed -i -e "s/BRANCH/$(TRAVIS_BRANCH)/" build/*.sh
-	cd build; tar zcf $(NAME).tgz ./$(NAME)
+	GOOS=linux GOARCH=amd64 go build -o build/$(NAME)/$(NAME) .
+	for d in script init; do if [ -d $$d ]; then cp -r $$d build/$(NAME); fi; done
+	sed -i -e "s/BRANCH/$(TRAVIS_BRANCH)/" build/*/*.sh || true
+	cd build; tar zcf $(NAME)-linux-amd64.tgz ./$(NAME)
 	rm -r build/$(NAME)
 
-build/$(NAME): *.go version depend
-	@mkdir -p build
-	GOOS=linux GOARCH=amd64 go build -o build/$(NAME) .
-
-# #TODO: convert from RLL
-upload:
-	@echo "Upload needs to be implemented in the Makefile"
-# this assumes you have AWS_ACCESS_KEY_ID and AWS_SECRET_KEY env variables set,
+# upload assumes you have AWS_ACCESS_KEY_ID and AWS_SECRET_KEY env variables set,
 # which happens in the .travis.yml for CI
-#upload: depend
-#	@which gof3r >/dev/null || (echo 'Please "go get github.com/rlmcpherson/s3gof3r/gof3r"'; false)
-#	(cd build; set -ex; for f in *; do \
-#	 gof3r put -b ${BUCKET} -k rll/$(TRAVIS_BRANCH)/$$f -m x-amz-acl:public-read <$$f; \
-#	done)
-#	gof3r put -b ${BUCKET} -k rll/$(TRAVIS_BRANCH)/upgrades -m x-amz-acl:public-read <upgrades
-#@which s3cmd >/dev/null || (echo Please install s3cmd from http://s3tools.org; false)
-#s3cmd -P -c ./.s3cfg --force put build/* s3://${BUCKET}/$(TRAVIS_BRANCH)/
+upload: depend
+	@which gof3r >/dev/null || (echo 'Please "go get github.com/rlmcpherson/s3gof3r/gof3r"'; false)
+	(cd build; set -ex; \
+	  for f in *.tgz; do \
+	    gof3r put -b ${BUCKET} -k rsbin/$(NAME)/$(TRAVIS_COMMIT)/$$f <$$f; \
+	    if [[ -z "$(TRAVIS_PULL_REQUEST)" ]]; then \
+	      gof3r put -b ${BUCKET} -k rsbin/$(NAME)/$(TRAVIS_BRANCH)/$$f <$$f; \
+	    fi; \
+	  done)
 
 # produce a version string that is embedded into the binary that captures the branch, the date
 # and the commit we're building
