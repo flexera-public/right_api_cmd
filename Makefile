@@ -51,7 +51,7 @@ upload: depend
 	(cd build; set -ex; \
 	  for f in *.tgz; do \
 	    gof3r put --no-md5 --acl=$(ACL) -b ${BUCKET} -k rsbin/$(NAME)/$(TRAVIS_COMMIT)/$$f <$$f; \
-	    if [ -z "$(TRAVIS_PULL_REQUEST)" ]; then \
+	    if [ "$(TRAVIS_PULL_REQUEST)" == "false" ]; then \
 	      gof3r put --no-md5 --acl=$(ACL) -b ${BUCKET} -k rsbin/$(NAME)/$(TRAVIS_BRANCH)/$$f <$$f; \
 	    fi; \
 	  done)
