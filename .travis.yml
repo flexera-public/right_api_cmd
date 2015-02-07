@@ -7,9 +7,9 @@ go:
   - 1.4
 env:
   global:
-  - AWS_ACCESS_KEY_ID: "AKIAIABKWOAXEFDZJ5BQ" # test us-3
+  - AWS_ACCESS_KEY_ID: "AKIAIX3L4RHHIREAHABQ" # queues&buckets rightscale-binaries-upload user
     # encrypted AWS_SECRET_ACCESS_KEY:
-  - secure: "CwV0iSnTOVZIBIIv7tTTMTMK43f4ttuyr4Hyro5MGr26o1sLD93XBccgg+sYu/U++Xs1lC5FAS+Q7YWhJP5+WkOsy+KbbI1B5pikDP7Xxa4t0XODESsMRzkMQYxH0u3cJ74SxT5bKYBYx+AhXxLScmOCYkoVJyH6+qXfjbRH/mc="
+  - secure: "a9TAGRYM9bf2wfwCZL15+4qKu6siuUQj9G7DyzvNKXq5R7m5b+iHtWXud99/wLmGYly6GVwA7Lco8TrHgwqDCptlYm5nk3bgCeUDP4sLaaui5Er1o7cBA9qH2zSZ0iGwyCU1TBcenuziG1kr8lwJJofZR2Ox7JgKoJuaus2vtMw="
     # GITHUB_TOKEN= to push code coverage comment ot github
   - secure: "HyJrsXL+WJkcL5TA4px0SZL6rY6Ft7IX8R7qq0K99bh9nX2Hl1my3nMY7OqcPE/Q0t0FUvOcq5U1c1wL1PBz9gu4n2Wpz4gU28drnUocFZir2osUOG0QCHrdeaXSKn2zekyCB5puxJleEIZqCh36rR2F8SwCh/88d6poUXFyvxI="
     # COV_KEY= code coverage upload keys
