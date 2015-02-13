@@ -9,7 +9,11 @@ Synopsis
 
 `rs-api [-flags...] resource_href action parameters...`
 
-Where:
+Perform an API request on the resource or resource collection named by `resource_href` to perform the requested
+`action` with the specified `parameters`. The command line mimicks the actual API definition
+http://reference.rightscale.com/api1.5 very closely using the same resource hrefs, the same action names (allo
+lower-case), and the same parameters.
+
 - `resource_href` is either the href of a resource or resource collection to be operated on,
   such as `/api/servers/123456` or `/api/cloud/1/instances/1234345`, or it is an abbreviation
   for a "global" collection such as `servers` (a short-hand for `/api/servers`)
@@ -26,13 +30,15 @@ Flags:
 - `-rl10` tells rs-api to proxy through RightLink10 and locate the RL10 port and secret in
   `/var/run/rll-secret`
 - `-pretty` pretty-prints the result
-- `-x=<json path>` extracts the named path from the json, see below for more info
-- `-hx=<header> extracts the named header
+- `-x1=<json path>` extracts the single value at the named path from the json
+- `-xm=<json path>` extracts zero, one or multiple values at the named path from the json
+- `-xl=<json path>` extracts the href of a link at the named path from the json
+- `-xh=<header> extracts the named header
 - `-noRedirect` tells rs-api not to follow any redirects
 - `-fetch` tells rs-api to fetch any resource referenced in a response Location header, this
   is helpful to "auto-fetch" a newly created resource
 
-Extracted values are printed on stdout in json, if a single -x or -hx option is provided then
+Extracted values are printed on stdout in json, if a single -x option is provided then
 just the extracted value is printed, if multiple options are provided then a JSON hash is
 printed with the json paths and/or header field names as keys and the extracted values as
 values.
