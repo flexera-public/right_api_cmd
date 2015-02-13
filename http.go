@@ -5,11 +5,14 @@ package main
 //===== RightScale HTTP Requests
 
 // This file implements the various HTTPS requests used to communicate with the RightScale
-// API (V1.5 for now) through the RLL proxy or possibly directly. It is primarily a convenience
+// API (V1.5 and V1.6) through the RLL proxy or possibly directly. It is primarily a convenience
 // layer on top of the std Go http client that provides a number of features, including:
 // - keeping track of the global session auth cookie
 // - adding the API version header
+// - performing retries where appropriate
+// - returning an exit status on error
 // - offering some logging capability
+// - extracting fields from the response
 
 // The client has two ways to authenticate. The first is to read the RightLink10 proxy
 // secret file in /var/run/rll-secret and then use the proxy built into RL10. The second is
@@ -37,9 +40,11 @@ const requestTimeout = 300 * time.Second // overall timeout for HTTP requests to
 // Client is the handle onto a RightScle client interface.
 // Create a Client object by calling NewClient()
 type Client interface {
+	SetVersion(v string) // sets the RightApi version, either "1.5" or "1.6"
 	Get(uri string, args map[string]interface{}) (*Response, error)
 	Post(uri string, args map[string]interface{}) (*Response, error)
 	Put(uri string, args map[string]interface{}, contentType, content string) (*Response, error)
+	Delete(uri string, args map[string]interface{}) (*Response, error)
 	SetInsecure()           // makes the client accept broken ssl certs, used in tests
 	SetDebug(debug bool)    // causes each request and response to be logged
 	RecordHttp(w io.Writer) // starts recording requests/resp to put into tests
@@ -49,6 +54,7 @@ type Response struct {
 	statusCode   int
 	errorMessage string
 	data         map[string]interface{}
+	raw          []byte
 	location     string // value of Location: response header
 }
 
@@ -58,6 +64,7 @@ type Response struct {
 // well as send and receive RightNet messages over Websockets
 type client struct {
 	cl          http.Client // underlying std http client
+	apiVersion  string      // "1.5" or "1.6"
 	account     string      // RightScale account ID (needed to get cluster redirect)
 	debug       bool        // whether to print request/response bodies
 	authToken   string      // OAuth authentication token used in every request
@@ -94,6 +101,11 @@ func (c *client) makeURL(uri string) string {
 	return c.httpServer + uri
 }
 
+// Set the API version
+func (c *client) SetVersion(v string) {
+	c.apiVersion = v
+}
+
 // Add std headers
 func (c *client) setHeaders(h http.Header) {
 	if c.authToken != "" {
@@ -105,7 +117,7 @@ func (c *client) setHeaders(h http.Header) {
 	if c.account != "" {
 		h.Set("X-Account", c.account)
 	}
-	h.Set("X-API-VERSION", "1.5")
+	h.Set("X-API-VERSION", c.apiVersion)
 	h.Set("User-Agent", "rightlink_cmd")
 }
 
@@ -234,10 +246,10 @@ func (c *client) authenticate(clientId, clientSecret string) error {
 }
 */
 
-//===== Actuall perform calls =====
+//===== Actually perform calls =====
 
-// readBody reads the response body replaces it with a buffered copy for re-reading, and
-// returns it
+// readBody reads the response body and replaces it with a buffered copy for re-reading, and
+// returns it. This is useful when the body needs to be consumed multiple times
 func readBody(resp *http.Response) ([]byte, error) {
 	// ok to use ReadAll 'cause this is only used in test&debug, not production
 	body, err := ioutil.ReadAll(resp.Body)
@@ -332,18 +344,22 @@ func processResponse(req *http.Request, resp *http.Response) (*Response, error) 
 	r := Response{statusCode: resp.StatusCode, location: resp.Header.Get("Location")}
 	if resp.StatusCode >= 200 && resp.StatusCode < 299 {
 		var err error
-		r.data, err = parseResponseBody(resp.Body)
+		r.raw, err = readBody(resp)
+		if err == nil {
+			r.data, err = parseResponseBody(resp.Body)
+		}
 		if err != nil {
 			return nil, fmt.Errorf("HTTP %s %s: %s",
 				req.Method, req.URL.Path, err.Error())
 		}
 	} else if resp.Body != nil {
-		body, err := readBody(resp)
+		var err error
+		r.raw, err = readBody(resp)
 		if err != nil {
 			return nil, fmt.Errorf("HTTP %s %s error reading response body: %s",
 				req.Method, req.URL.Path, err.Error())
 		}
-		r.errorMessage = string(body)
+		r.errorMessage = string(r.raw)
 	} else {
 		r.errorMessage = resp.Status
 	}
@@ -407,7 +423,7 @@ func (c *client) Post(uri string, args map[string]interface{}) (*Response, error
 	// recording (ignore errors here)
 	if c.recorder != nil {
 		respBody, _ := readBody(resp)
-		fmt.Fprintf(c.recorder, "{ \"GET\", \"%s\", %q, %q }\n", uri, dump, respBody)
+		fmt.Fprintf(c.recorder, "{ \"POST\", \"%s\", %q, %q }\n", uri, dump, respBody)
 	}
 
 	// logging
@@ -443,7 +459,41 @@ func (c *client) Put(uri string, args map[string]interface{}, contentType, conte
 	// recording (ignore errors here)
 	if c.recorder != nil {
 		respBody, _ := readBody(resp)
-		fmt.Fprintf(c.recorder, "{ \"GET\", \"%s\", %q, %q }\n", uri, dump, respBody)
+		fmt.Fprintf(c.recorder, "{ \"PUT\", \"%s\", %q, %q }\n", uri, dump, respBody)
+	}
+
+	// logging
+	logRequest(c.debug, err, req, dump, resp)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return processResponse(req, resp)
+}
+
+// Same as http.Client.Delete but just pass URI, like /api/instances
+func (c *client) Delete(uri string, args map[string]interface{}) (*Response, error) {
+	uri = c.makeURL(uri)
+	if args != nil {
+		uri += "?" + queryStringArgs(args)
+	}
+	req, err := http.NewRequest("DELETE", uri, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	c.setHeaders(req.Header)
+	dump, _ := httputil.DumpRequestOut(req, true)
+	dump = noAuthHeader.ReplaceAll(dump, []byte("Authorization: Bearer <hidden>"))
+
+	// perform the request
+	resp, err := c.cl.Do(req)
+
+	// recording (ignore errors here)
+	if c.recorder != nil {
+		respBody, _ := readBody(resp)
+		fmt.Fprintf(c.recorder, "{ \"DELETE\", \"%s\", %q, %q }\n", uri, dump, respBody)
 	}
 
 	// logging
