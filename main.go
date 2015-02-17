@@ -3,25 +3,69 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
+	"regexp"
 	"runtime"
 
+	"github.com/coddingtonbear/go-jsonselect"
 	"github.com/jmoiron/jsonq"
 	"gopkg.in/alecthomas/kingpin.v1"
 )
 
 var (
-	app   = kingpin.New("rs_cmd", "RightScale/RightLink10 commands")
-	debug = app.Flag("debug", "Enable verbose request and response logging").Bool()
-	proxy = app.Flag("proxy", "host:port/secret for API proxy (optional)").String()
+	app = kingpin.New("rs-api", `RightScale/RightLink10 API 1.5/1.6 Command Line Client
 
-	setTag    = app.Command("set_tag", "Set tags on the instance")
-	tagsToSet = setTag.Arg("tags", "Tags to add, e.g. rs_agent:monitoring=true").
-			Required().Strings()
+rs-api issues API requests to the RightScale platform or to RightLink10 either directly or via
+the proxy built into RightLink10. The command line mateches the REST API documentation at
+http://reference.rightscale.com/api1.5 very closely. Each request is anchored at a 
+resource-href such as /api/servers or /api/cloud/1/instances/123445. Each request performs
+an action on that resource or resource collection, such as index, show, delete, launch,
+terminate, etc. The action names are as specified in the API docs. The arguments are the
+unescaped parameters, such as server[instance][href]=/api/cloud/instances/123456.
+
+Some shortcuts are accepted instead of full resource-hrefs: self denotes the instance's
+self-href (/api/cloud/X/instances/Y), single words are replaced by /api/<word> and can be
+used for global collections.
+
+By default the requests are issued to API 1.5 using the local RL10 proxy. Use the command
+line flags to alter this.
+
+By default the JSON response is printed but instead it is possible to extract values from the
+response and print those instead using a JSON:select syntax. See http://jsonselect.org/ for
+details.
+
+Non-zero exit codes indicate a problem: 1 -> HTTP 401, 2 -> HTTP 4XX, 3 -> HTTP 403,
+4 -> HTTP 404, 5 -> HTTP 5XX
+`)
+
+	debugFlag   = app.Flag("debug", "Enable verbose request and response logging").Bool()
+	host        = app.Flag("host", "host:port for API endpoint").String()
+	rsKey       = app.Flag("key", "RightScale API key or RL10 proxy secret").String()
+	prettyFlag  = app.Flag("pretty", "pretty-print output").Bool()
+	fetchFlag   = app.Flag("fetch", "auto-fetch resource returned in Location header").Bool()
+	noRedirFlag = app.Flag("noRedirect", "do not follow any redirects").Bool()
+	rl10Flag    = app.Flag("rl10", "use RightLink10 proxy and auto-detect port/secret "+
+		"unless -host flag is provided").Bool()
+
+	resourceHref = app.Arg("resource-href", "href of resource to operate on or shortcut, "+
+		"ex: /api/instances/1234, servers, server_templates, self").Required().String()
+	actionName = app.Arg("action", "name of action, ex: index, create, delete, launch, ...").
+			Required().String()
+	arguments = app.Arg("parameters", "arguments to the API call as described in API docs, "+
+		"ex: 'server[instance][href]=/api/instances/123456'").Strings()
+
+	extract = app.Flag("x", "extract data from response using json:select").String()
+
+//	setTag    = app.Command("set_tag", "Set tags on the instance")
+//	tagsToSet = setTag.Arg("tags", "Tags to add, e.g. rs_agent:monitoring=true").
+//			Required().Strings()
 )
 
-func init() { kingpin.Version("0.0.1") }
+func init() { kingpin.Version(VV) }
 
 // file with info to access Rightlink10 proxy to RightApi, this could be more Go idiomatic, but
 // let's wait whether more linux vs windows differences actually accumulate
@@ -34,7 +78,7 @@ func init() {
 }
 
 var rsClientInternal Client // internal, do not use directly!
-var rsProxyLocation string  // how to contact the proxy, either a file or host:port/secret
+//notused var rsProxyLocation string  // how to contact the proxy, either a file or host:port/secret
 
 // rightscale is the client handle to use to make API 1.5 requests, it's a function that will
 // create an actual NewProxyClient the first time it's called
@@ -43,35 +87,117 @@ var rightscale = func() Client {
 		return rsClientInternal
 	}
 
-	// either get the proxy location from the file or from the --proxy command line flag
-	where := rllSecretPath
-	if *proxy != "" {
-		where = *proxy
-	}
-
 	var err error
-	rsClientInternal, err = NewProxyClient(where)
-	if err != nil {
-		kingpin.FatalIfError(err, "Error contacting RightLink proxy: ")
+	if *rl10Flag {
+		// we're gonna use the RL10 proxy
+		rsClientInternal, err = NewProxyClient(*host, *rsKey, *debugFlag)
+		if err != nil {
+			kingpin.FatalIfError(err, "")
+		}
+	} else {
+		// we're gonna go direct to RightScale
+		rsClientInternal, err = NewDirectClient(*host, *rsKey, *debugFlag)
+		if err != nil {
+			kingpin.FatalIfError(err, "")
+		}
 	}
 
 	return rsClientInternal
 }
 
+var reResourceHref = regexp.MustCompile(`^([a-z0-9_]+)|(/(api|rll)(/[a-z0-9_]+)+)$`)
+
 func main() {
-	dispatch := kingpin.MustParse(app.Parse(os.Args[1:]))
-	if *debug {
-		rightscale().SetDebug(true)
+	_ = kingpin.MustParse(app.Parse(os.Args[1:]))
+
+	if *resourceHref == "self" {
+		rh := getSelfHref()
+		resourceHref = &rh
+	} else {
+		m := reResourceHref.FindStringSubmatch(*resourceHref)
+		if m == nil {
+			kingpin.Fatalf("resourceHref '%s' is not valid", *resourceHref)
+		}
+		if len(m) != 5 {
+			kingpin.Fatalf("OOPS: %d -- %#v", len(m), m)
+		}
+		if m[1] != "" {
+			href := "/api/" + m[1]
+			resourceHref = &href
+		}
 	}
-	switch dispatch {
-	case setTag.FullCommand():
-		fmt.Printf("Tags: %#v\n", tagsToSet)
-		selfHref := getSelfHref()
-		setTagCmd(selfHref)
-	default:
-		app.Usage(os.Stderr)
-		os.Exit(1)
+
+	if *actionName == "list" {
+		i := "index"
+		actionName = &i
 	}
+
+	doRequest(*resourceHref, *actionName, *arguments)
+
+	/*
+		switch dispatch {
+		case setTag.FullCommand():
+			fmt.Printf("Tags: %#v\n", tagsToSet)
+			selfHref := getSelfHref()
+			setTagCmd(selfHref)
+		default:
+			app.Usage(os.Stderr)
+			os.Exit(1)
+		}
+	*/
+}
+
+var reArgument = regexp.MustCompile(`^([a-zA-Z0-9_\[\]]+)=(.*)`)
+
+var crudActions = map[string]string{
+	"index": "GET", "show": "GET", "list": "GET",
+	"update": "POST", "create": "POST", "delete": "DELETE",
+}
+
+func doRequest(resourceHref, actionName string, arguments []string) {
+
+	// query-string encode the arguments
+	// we don't use url.Values because we allow multiple arguments with the same
+	// key, filter[]=... is an example
+	// we don't encode the key part because it's not required by our servers
+	for i := range arguments {
+		s := reArgument.FindStringSubmatch(arguments[i])
+		if len(s) != 3 {
+			kingpin.Fatalf("argument '%s' is not valid", arguments[i])
+		}
+		arguments[i] = s[1] + "=" + url.QueryEscape(s[2])
+	}
+
+	// perform the request
+	method := crudActions[actionName]
+	if method == "" {
+		actionName = "POST" // custom actions all use POST
+	}
+
+	resp, err := rightscale().Do(method, resourceHref, arguments, "", "")
+	kingpin.FatalIfError(err, "")
+
+	// produce JSON
+	js, err := json.Marshal(resp.data)
+	kingpin.FatalIfError(err, "")
+
+	if extract == nil {
+		// not extracting, let's print the json pretty or not
+		if *prettyFlag {
+			var buf bytes.Buffer
+			json.Indent(&buf, js, "", "  ")
+			js = buf.Bytes()
+		}
+		fmt.Println(string(js))
+		return
+	}
+
+	// let's extract something using json:select
+	parser, err := jsonselect.CreateParserFromString(string(js))
+	kingpin.FatalIfError(err, "")
+	values, err := parser.GetValues(*extract)
+	kingpin.FatalIfError(err, "")
+	fmt.Print(values)
 }
 
 // findRel finds a relationship in a json links collections and returns the href, i.e. given
@@ -98,40 +224,47 @@ func findRel(rel string, data map[string]interface{}) string {
 // retrieve the instance's self href (e.g. /api/instances/123) either from RLL or from the
 // platform
 func getSelfHref() string {
+	if !*rl10Flag {
+		kingpin.Fatalf("Cannot retrieve self-href when not using RightLink proxy")
+	}
+
 	// first query RLL to see whether it has the self href as a global variable
-	resp, err := rightscale().Get("/rll/env", nil)
-	kingpin.FatalIfError(err, "Error fetching self_href: ")
+	resp, err := rightscale().Do("GET", "/rll/env", nil, "", "")
+	kingpin.FatalIfError(err, "fetching self_href")
 	jq := jsonq.NewQuery(resp.data)
 	href, err := jq.String("RS_SELF_HREF")
 	if err == nil && href != "" {
 		// found it, return it
-		if *debug {
+		if *debugFlag {
 			fmt.Fprintf(os.Stderr, "Self href: %s\n", href)
 		}
 		return href
 	}
 
 	// RLL doesn't have it, fetch it from the platform
-	resp, err = rightscale().Get("/api/session/instance", nil)
-	kingpin.FatalIfError(err, "Error fetching instance from RS")
-	href = findRel("self", resp.data)
+	resp, err = rightscale().Do("GET", "/api/session/instance", nil, "", "")
+	kingpin.FatalIfError(err, "fetching instance from RS")
+	if data, ok := resp.data.(map[string]interface{}); ok {
+		href = findRel("self", data)
+	}
 
 	if href == "" {
-		kingpin.Fatalf("Error extracting self-href")
+		kingpin.Fatalf("extracting self-href from %+v <<%s>>", resp.data, resp.raw)
 	}
 
 	// set the self-href as global in RLL
-	_, err = rightscale().Put("/rll/env/RS_SELF_HREF", nil, "text/plain", href)
+	_, err = rightscale().Do("PUT", "/rll/env/RS_SELF_HREF", nil, "text/plain", href)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: cannot set RS_SELF_HREF in RLL: %s\n", err.Error())
 	}
 
-	if *debug {
+	if *debugFlag {
 		fmt.Fprintf(os.Stderr, "Self href: %s\n", href)
 	}
 	return href
 }
 
+/*
 func setTagCmd(selfHref string) {
 	args := map[string]interface{}{
 		"resource_hrefs[]": selfHref,
@@ -142,3 +275,4 @@ func setTagCmd(selfHref string) {
 	kingpin.FatalIfError(err, "Error updating tags: ")
 
 }
+*/

@@ -41,10 +41,7 @@ const requestTimeout = 300 * time.Second // overall timeout for HTTP requests to
 // Create a Client object by calling NewClient()
 type Client interface {
 	SetVersion(v string) // sets the RightApi version, either "1.5" or "1.6"
-	Get(uri string, args map[string]interface{}) (*Response, error)
-	Post(uri string, args map[string]interface{}) (*Response, error)
-	Put(uri string, args map[string]interface{}, contentType, content string) (*Response, error)
-	Delete(uri string, args map[string]interface{}) (*Response, error)
+	Do(method, uri string, args []string, contentType, content string) (*Response, error)
 	SetInsecure()           // makes the client accept broken ssl certs, used in tests
 	SetDebug(debug bool)    // causes each request and response to be logged
 	RecordHttp(w io.Writer) // starts recording requests/resp to put into tests
@@ -53,23 +50,25 @@ type Client interface {
 type Response struct {
 	statusCode   int
 	errorMessage string
-	data         map[string]interface{}
+	data         interface{}
 	raw          []byte
 	location     string // value of Location: response header
 }
 
 //===== Client data structure and helper functions
 
-// An rsclient.client is a handle to perform HTTP requests to the RightScale platform as
-// well as send and receive RightNet messages over Websockets
+// An rsclient.client is a handle to perform HTTP requests to the RightScale platform.
+// if proxySecret is set, we use the RL proxy at httpServer, else we use a direct connection
+// to httpServer with apiKey and authToken
 type client struct {
 	cl          http.Client // underlying std http client
 	apiVersion  string      // "1.5" or "1.6"
-	account     string      // RightScale account ID (needed to get cluster redirect)
 	debug       bool        // whether to print request/response bodies
-	authToken   string      // OAuth authentication token used in every request
-	httpServer  string      // "http[s]://hostname" for RightScale HTTP API endpoint
-	proxySecret string      // secret required to use HTTP handler/proxy
+	httpServer  string      // "http[s]://hostname:port" for RightScale HTTP API endpoint
+	account     string      // RightScale account ID (needed to get cluster redirect)
+	authToken   string      // OAuth authentication token used in every direct request
+	apiKey      string      // API key for direct connections
+	proxySecret string      // proxy secret for RL10 proxied connections
 	recorder    io.Writer   // where to record req/resp to put into tests
 }
 
@@ -108,59 +107,67 @@ func (c *client) SetVersion(v string) {
 
 // Add std headers
 func (c *client) setHeaders(h http.Header) {
-	if c.authToken != "" {
-		h.Set("Authorization", "Bearer "+c.authToken)
-	} else if c.proxySecret != "" {
+	if c.proxySecret != "" {
 		h.Set("X-RLL-Secret", c.proxySecret)
+	} else if c.authToken != "" {
+		h.Set("Authorization", "Bearer "+c.authToken)
 	}
 
 	if c.account != "" {
 		h.Set("X-Account", c.account)
 	}
 	h.Set("X-API-VERSION", c.apiVersion)
-	h.Set("User-Agent", "rightlink_cmd")
+	h.Set("User-Agent", "right_api_cmd")
 }
 
 //===== RightLink10 proxy secret
 
 var reRllPort = regexp.MustCompile(`RS_RLL_PORT=(\d+)`)
 var reRllSecret = regexp.MustCompile(`RS_RLL_SECRET=([A-Za-z0-9]+)`)
-var reWhere = regexp.MustCompile(`([-A-Za-z0-9.]+):([0-9]+)/([A-Za-z0-9]+)`) // host:port/secret
+var reWhere = regexp.MustCompile(`([-A-Za-z0-9.]+):([0-9]+)`) // host:port
 
-func NewProxyClient(where string) (Client, error) {
+func NewProxyClient(proxyHost, secret string, debug bool) (Client, error) {
 	var rllHost, rllPort, rllSecret string
 
-	if m := reWhere.FindStringSubmatch(where); len(m) == 4 {
-		// explicit info about what to contact
-		rllHost = m[1]
-		rllPort = m[2]
-		rllSecret = m[3]
-	} else {
+	if proxyHost == "" || secret == "" {
 		// read file content to get the info
-		secrets, err := ioutil.ReadFile(where)
+		secrets, err := ioutil.ReadFile(rllSecretPath)
 		if err != nil {
-			return nil, fmt.Errorf("Error reading proxy secret file %s: %s",
-				where, err.Error())
+			return nil, fmt.Errorf("reading proxy secret file: %s", err.Error())
 		}
 
 		// parse file using regexp
 		p := reRllPort.FindSubmatch(secrets)
 		if len(p) != 1 {
-			return nil, fmt.Errorf("Cannot find or parse RS_RLL_PORT in %s", where)
+			return nil, fmt.Errorf("Cannot find or parse RS_RLL_PORT in %s",
+				rllSecretPath)
 		}
 		rllPort = string(p[0])
 		s := reRllSecret.FindSubmatch(secrets)
 		if len(s) != 1 {
-			return nil, fmt.Errorf("Cannot find or parse RS_RLL_SECRET in %s", where)
+			return nil, fmt.Errorf("Cannot find or parse RS_RLL_SECRET in %s",
+				rllSecretPath)
 		}
 		rllSecret = string(s[0])
 		rllHost = "localhost"
+	}
+
+	if m := reWhere.FindStringSubmatch(proxyHost); proxyHost != "" && len(m) == 3 {
+		// explicit info about what to contact
+		rllHost = m[1]
+		rllPort = m[2]
+	}
+
+	if secret != "" {
+		rllSecret = secret
 	}
 
 	// concoct client
 	c := &client{
 		httpServer:  "http://" + rllHost + ":" + rllPort,
 		proxySecret: rllSecret,
+		apiVersion:  "1.5",
+		debug:       debug,
 	}
 	c.cl.Timeout = requestTimeout
 	return c, nil
@@ -168,12 +175,21 @@ func NewProxyClient(where string) (Client, error) {
 
 //===== Auth stuff =====
 
-func NewDirectClient(httpServer, account string) Client {
-	c := &client{httpServer: httpServer, account: account}
+func NewDirectClient(httpServer, apiKey string, debug bool) (Client, error) {
+	if !strings.HasPrefix(httpServer, "https:") {
+		httpServer = "https://" + httpServer
+	}
+	c := &client{httpServer: httpServer, apiKey: apiKey, apiVersion: "1.5", debug: debug}
 	c.cl.Timeout = requestTimeout
-	return c
+	err := c.authenticate()
+	if err != nil {
+		return nil, err
+	}
+
+	return c, nil
 }
 
+/* this is not used but kept here for reference
 type authResponse struct {
 	Mode        string `json:"mode"`
 	ShardId     int    `json:"shard_id"`
@@ -183,68 +199,35 @@ type authResponse struct {
 	RouterUrl   string `json:"router_url"`
 	ExpiresIn   int    `json:"expires_in"`
 }
+*/
 
-/*
 // Perform an authentication request and save the oauth token in the client
-func (c *client) authenticate(clientId, clientSecret string) error {
-	// issue the request
-	body := fmt.Sprintf("grant_type=client_credentials&client_id=%s&client_secret=%s&r_s_version=23",
-		clientId, clientSecret)
-	resp, err := c.Post("/api/oauth2", "application/x-www-form-urlencoded", []byte(body))
+func (c *client) authenticate() error {
+	resp, err := c.Do("POST", "/api/oauth2", []string{
+		"grant_type=refresh_token", "refresh_token=" + c.apiKey}, "", "")
 	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	// check out the response body
-	if resp.StatusCode == 400 {
-		return fmt.Errorf("Invalid oauth credentials")
-	} else if resp.StatusCode != 200 {
-		body, _ := ioutil.ReadAll(resp.Body)
-		if len(body) > 0 {
-			return fmt.Errorf("%s (%d)", resp.Status, resp.StatusCode)
-		} else {
-			return fmt.Errorf("%s (%d). Server says <<%s>>",
-				resp.Status, resp.StatusCode, body)
+		msg := err.Error()
+		if resp != nil && resp.data != nil {
+			if d, ok := resp.data.(map[string]interface{}); ok {
+				if descr, ok := d["error_description"].(string); ok {
+					msg += " \"" + descr + "\""
+				}
+			}
 		}
+		return fmt.Errorf("OAuth failed: %s", msg)
 	}
-	if !strings.HasPrefix(resp.Header.Get("Content-Type"), "application/json") {
-		return fmt.Errorf("got %s instead of application/json",
-			resp.Header.Get("Content-Type"))
+
+	data, ok := resp.data.(map[string]interface{})
+	if !ok || len(data) == 0 {
+		return fmt.Errorf("Invalid oauth response: <<%s>>", resp.raw)
 	}
-	// Random feature: print the time-offset
-	checkTimeOffset(resp, t0)
-	// Now parse the JSON response
-	respBody, err := ioutil.ReadAll(resp.Body) // note: unbounded read is security issue
-	authResp := authResponse{}
-	err = json.Unmarshal(respBody, &authResp)
-	if err != nil {
-		return fmt.Errorf("cannot parse JSON response: %s", err.Error())
+
+	if c.authToken, ok = data["access_token"].(string); !ok {
+		return fmt.Errorf("Oauth response doesn't have access token: %+v", resp.data)
 	}
-	if authResp.AccessToken == "" || authResp.RouterUrl == "" || authResp.ApiUrl == "" {
-		return fmt.Errorf("incomplete auth response: %s ---> %#v", respBody, authResp)
-	}
-	apiUrl, err := url.Parse(authResp.ApiUrl)
-	if err != nil {
-		return fmt.Errorf("cannot parse API URL: %s", err.Error())
-	}
-	wsUrl, err := url.Parse(authResp.RouterUrl)
-	if err != nil {
-		return fmt.Errorf("cannot parse Websocket URL: %s", err.Error())
-	}
-	//log.Printf("**REMOVEME** OAuth successful: %#v\n", authResp)
-	if c.httpServer != apiUrl.Host {
-		log.Printf("OAuth redirects to: %#v\n", apiUrl.Host)
-	}
-	// Save what we got in the client
-	c.authToken = authResp.AccessToken
-	c.authExpires = timeNow().Add(time.Duration(authResp.ExpiresIn) * time.Second)
-	c.httpServer = apiUrl.Host
-	c.wsServer = wsUrl.Host
-	c.agentId = fmt.Sprintf("rs-instance-%x-%s", sha1.Sum([]byte(clientSecret)), clientId)
 
 	return nil
 }
-*/
 
 //===== Actually perform calls =====
 
@@ -259,9 +242,8 @@ func readBody(resp *http.Response) ([]byte, error) {
 	return body, err
 }
 
-// logRequest logs a request and dumps request & response if there was an error and we're in
-// debug mode
-func logRequest(debug bool, err error, req *http.Request, reqDump []byte, resp *http.Response) {
+// logRequest logs a request and dumps request & response if there was an error
+func logRequest(err error, req *http.Request, reqDump []byte, resp *http.Response) {
 	// short-hand function to print to stderr
 	logf := func(format string, args ...interface{}) {
 		fmt.Fprintf(os.Stderr, format, args...)
@@ -276,23 +258,10 @@ func logRequest(debug bool, err error, req *http.Request, reqDump []byte, resp *
 			logf("HTTP %s redirect to %s\n", req.Method, resp.Header.Get("Location"))
 		} else if resp.StatusCode > 399 { // a real error, log shtuff
 			logf("HTTP %s %s returned %s\n", req.Method, req.URL.Path, resp.Status)
-			if debug {
-				// in debug mode dump everything
-				logf("===== REQUEST =====\n%s\n", reqDump)
-				dump, _ := httputil.DumpResponse(resp, true)
-				logf("===== RESPONSE =====\n%s\n", dump)
-			} else if resp.Body != nil {
-				// in normal mode dump response (should contain error msg)
-				body, err := readBody(resp)
-				if err != nil {
-					logf("HTTP %s %s error reading response body: %s\n",
-						req.Method, req.URL.Path, err.Error())
-				} else {
-					logf("HTTP %s response body: %s\n", req.Method, string(body))
-					resp.Body = ioutil.NopCloser(bytes.NewReader(body))
-				}
-			}
-		} else if debug { // 2XX - all ok, only log if debug is set
+			logf("===== REQUEST =====\n%s\n", reqDump)
+			dump, _ := httputil.DumpResponse(resp, true)
+			logf("===== RESPONSE =====\n%s\n", dump)
+		} else { // 2XX - all ok
 			logf("HTTP %s %s -> %s\n", req.Method, req.URL.Path, resp.Status)
 		}
 	}
@@ -302,7 +271,7 @@ var noAuthHeader = regexp.MustCompile(`(?im)^Authorization:.*$`)
 
 // construct a queryString from the args, which is a map to strings or arrays of strings, for
 // example: { "view": "expanded", "filter[]": [ "name==my_name", "cloud_href==/api/clouds/1" ] }
-// both the key and the value o fthe map will be URL-encoded
+// both the key and the value of the map will be URL-encoded
 func queryStringArgs(args map[string]interface{}) string {
 	qs := ""   // query string we're building
 	conn := "" // connector between clauses, i.e., "&" after the first
@@ -322,7 +291,7 @@ func queryStringArgs(args map[string]interface{}) string {
 	return qs
 }
 
-func parseResponseBody(body io.Reader) (map[string]interface{}, error) {
+func parseResponseBody(body io.Reader) (interface{}, error) {
 	if body == nil {
 		return nil, nil
 	}
@@ -334,10 +303,10 @@ func parseResponseBody(body io.Reader) (map[string]interface{}, error) {
 	} else if err != nil {
 		return nil, fmt.Errorf("error decoding json: %s", err.Error())
 	}
-	if _, ok := data.(map[string]interface{}); !ok {
-		return nil, fmt.Errorf("response is not a hash: %#v", data)
-	}
-	return data.(map[string]interface{}), nil
+	//if _, ok := data.(map[string]interface{}); !ok {
+	//	return nil, fmt.Errorf("response is not a hash: %#v", data)
+	//}
+	return data, nil
 }
 
 func processResponse(req *http.Request, resp *http.Response) (*Response, error) {
@@ -352,6 +321,7 @@ func processResponse(req *http.Request, resp *http.Response) (*Response, error) 
 			return nil, fmt.Errorf("HTTP %s %s: %s",
 				req.Method, req.URL.Path, err.Error())
 		}
+		return &r, nil
 	} else if resp.Body != nil {
 		var err error
 		r.raw, err = readBody(resp)
@@ -359,149 +329,66 @@ func processResponse(req *http.Request, resp *http.Response) (*Response, error) 
 			return nil, fmt.Errorf("HTTP %s %s error reading response body: %s",
 				req.Method, req.URL.Path, err.Error())
 		}
+		r.data, _ = parseResponseBody(resp.Body) // in case there's a json error body
 		r.errorMessage = string(r.raw)
+		return &r, fmt.Errorf("HTTP %s %s: %s", req.Method, req.URL.Path, resp.Status)
 	} else {
 		r.errorMessage = resp.Status
+		return &r, fmt.Errorf("HTTP %s %s: %s", req.Method, req.URL.Path, resp.Status)
 	}
-
-	return &r, nil
-}
-
-// Same as http.Client.Get but just pass URI, like /api/instances
-func (c *client) Get(uri string, args map[string]interface{}) (*Response, error) {
-	uri = c.makeURL(uri)
-	if args != nil {
-		uri += "?" + queryStringArgs(args)
-	}
-
-	req, err := http.NewRequest("GET", uri, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	c.setHeaders(req.Header)
-	dump, _ := httputil.DumpRequestOut(req, true)
-	dump = noAuthHeader.ReplaceAll(dump, []byte("Authorization: Bearer <hidden>"))
-
-	// perform the request
-	resp, err := c.cl.Do(req)
-
-	// recording (ignore errors here)
-	if c.recorder != nil {
-		fmt.Fprintf(c.recorder, "{ \"GET\", \"%s\", \"\", %q }\n", uri, dump)
-	}
-
-	// logging
-	logRequest(c.debug, err, req, dump, resp)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return processResponse(req, resp)
 }
 
 // Same as http.Client.Post but just pass URI, like /api/instances
-func (c *client) Post(uri string, args map[string]interface{}) (*Response, error) {
-	uri = c.makeURL(uri)
-	if args != nil {
-		uri += "?" + queryStringArgs(args)
-	}
-	req, err := http.NewRequest("POST", uri, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	c.setHeaders(req.Header)
-	//req.Header.Set("Content-Type", bodyType)
-	dump, _ := httputil.DumpRequestOut(req, true)
-	dump = noAuthHeader.ReplaceAll(dump, []byte("Authorization: Bearer <hidden>"))
-
-	// perform the request
-	resp, err := c.cl.Do(req)
-
-	// recording (ignore errors here)
-	if c.recorder != nil {
-		respBody, _ := readBody(resp)
-		fmt.Fprintf(c.recorder, "{ \"POST\", \"%s\", %q, %q }\n", uri, dump, respBody)
-	}
-
-	// logging
-	logRequest(c.debug, err, req, dump, resp)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return processResponse(req, resp)
-}
-
-// Same as http.Client.Put but just pass URI, like /api/instances
-func (c *client) Put(uri string, args map[string]interface{}, contentType, content string) (
+func (c *client) Do(method string, uri string, args []string, contentType, content string) (
 	*Response, error) {
+
 	uri = c.makeURL(uri)
 	if args != nil {
-		uri += "?" + queryStringArgs(args)
+		uri += "?" + strings.Join(args, "&")
 	}
-	req, err := http.NewRequest("PUT", uri, strings.NewReader(content))
+	req, err := http.NewRequest(method, uri, strings.NewReader(content))
 	if err != nil {
 		return nil, err
 	}
 
 	c.setHeaders(req.Header)
-	req.Header.Set("Content-Type", contentType)
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
 	dump, _ := httputil.DumpRequestOut(req, true)
 	dump = noAuthHeader.ReplaceAll(dump, []byte("Authorization: Bearer <hidden>"))
 
-	// perform the request
-	resp, err := c.cl.Do(req)
+	try := 1
+	for {
+		// perform the request
+		var res *http.Response
+		res, err = c.cl.Do(req)
 
-	// recording (ignore errors here)
-	if c.recorder != nil {
-		respBody, _ := readBody(resp)
-		fmt.Fprintf(c.recorder, "{ \"PUT\", \"%s\", %q, %q }\n", uri, dump, respBody)
+		// log every iteration
+		if c.debug {
+			logRequest(err, req, dump, res)
+		}
+
+		// if the request didn't happen, retry
+		// TODO: need to be careful with timeouts!
+		if err != nil {
+			continue
+		}
+
+		// process the response, which extracts json
+		resp, err := processResponse(req, res)
+
+		if resp.statusCode < 500 || try >= 3 {
+			// success or our error, return what we got after recording
+			if c.recorder != nil {
+				respBody, _ := readBody(res)
+				fmt.Fprintf(c.recorder, "{ \"%s\", \"%s\", %q, %q }\n",
+					method, uri, dump, respBody)
+			}
+
+			return resp, err
+		}
+
+		try += 1
 	}
-
-	// logging
-	logRequest(c.debug, err, req, dump, resp)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return processResponse(req, resp)
-}
-
-// Same as http.Client.Delete but just pass URI, like /api/instances
-func (c *client) Delete(uri string, args map[string]interface{}) (*Response, error) {
-	uri = c.makeURL(uri)
-	if args != nil {
-		uri += "?" + queryStringArgs(args)
-	}
-	req, err := http.NewRequest("DELETE", uri, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	c.setHeaders(req.Header)
-	dump, _ := httputil.DumpRequestOut(req, true)
-	dump = noAuthHeader.ReplaceAll(dump, []byte("Authorization: Bearer <hidden>"))
-
-	// perform the request
-	resp, err := c.cl.Do(req)
-
-	// recording (ignore errors here)
-	if c.recorder != nil {
-		respBody, _ := readBody(resp)
-		fmt.Fprintf(c.recorder, "{ \"DELETE\", \"%s\", %q, %q }\n", uri, dump, respBody)
-	}
-
-	// logging
-	logRequest(c.debug, err, req, dump, resp)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return processResponse(req, resp)
 }

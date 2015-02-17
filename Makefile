@@ -14,7 +14,7 @@
 #   makefile, instead, we simply add the godep workspace to the GOPATH
 
 #NAME=$(shell basename $$PWD)
-NAME=rs-cmd
+NAME=rs-api
 BUCKET=rightscale-binaries
 ACL=public-read
 
