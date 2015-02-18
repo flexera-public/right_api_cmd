@@ -45,8 +45,8 @@ Flags:
 
 Extracted values are printed on stdout. `--x1` and `--xh` print the result in one line,
 `--xm` prints the result as one value per line
-(in _bash_ use something like `clouds=(\`rs-api --xm ...\`)` to get the results into a list).
-`--xj=` prints the result as a json array>
+(in _bash_ use something like `clouds=($(rs-api --xm ...))` to get the results into a list).
+`--xj=` prints the result as a json array.
 
 Exit codes:
 - 0 = all OK
@@ -67,28 +67,28 @@ Examples
 - Find instance's public IP addresses
 ```
 $ ./rs-api --host us-3.rightscale.com --key 1234567890 \
---x1 '.public_ip_addresses' /api/clouds/1/instances/LAB4OFL7I82E show
+           --x1 '.public_ip_addresses' /api/clouds/1/instances/LAB4OFL7I82E show
 ["54.147.25.88"]
 ```
 
 - Find an instance's resource_uid:
 ```
 ./rs-api --host us-3.rightscale.com --key 1234567890 \
---x1 '.resource_uid' /api/clouds/1/instances/LAB4OFL7I82E show
+           --x1 '.resource_uid' /api/clouds/1/instances/LAB4OFL7I82E show
 "i-4e9a80b5"
 ```
 
 - Find an instance's server href:
 ```
 $ ./rs-api --host us-3.rightscale.com --key 1234567890 \
---x1 'object:has(.rel:val("parent")).href' /api/clouds/1/instances/LAB4OFL7I82E show
+           --x1 'object:has(.rel:val("parent")).href' /api/clouds/1/instances/LAB4OFL7I82E show
 "/api/servers/994838003"
 ```
 
 - Find an instance's cloud type:
 ```
-cloud=`./rs-api --host us-3.rightscale.com --key 1234567890 \
---x1 'object:has(.rel:val("cloud")).href' /api/clouds/1/instances/LAB4OFL7I82E show`
+cloud=$(./rs-api --host us-3.rightscale.com --key 1234567890 \
+        --x1 'object:has(.rel:val("cloud")).href' /api/clouds/1/instances/LAB4OFL7I82E show)
 
 - Find the hrefs of all clouds of type amazon:
 ```
@@ -96,7 +96,7 @@ cloud=`./rs-api --host us-3.rightscale.com --key 1234567890 \
 clouds index 'filter[]=cloud_type==amazon'
 ```
 $ ./rs-api --host us-3.rightscale.com --key 1234567890 \
---xm 'object:has(.rel:val("self")).href' clouds index 'filter[]=cloud_type==amazon'
+           --xm 'object:has(.rel:val("self")).href' clouds index 'filter[]=cloud_type==amazon'
 "/api/clouds/1"
 "/api/clouds/3"
 "/api/clouds/4"
@@ -109,15 +109,16 @@ $ ./rs-api --host us-3.rightscale.com --key 1234567890 \
 ```
 Note: the match `object:has(.rel:val("self")).href` serves to extract the hrefs from the _self_
 links. The returned json for each cloud includes
-`,"links":[{"href":"/api/clouds/7","rel":"self"},
-{"href":"/api/clouds/7/datacenters","rel":"datacenters"},...` and the json:select expression says
+`"links":[ {"href":"/api/clouds/7", "rel":"self"}, {"href":"/api/clouds/7/datacenters",
+"rel":"datacenters"}, ... ]` and the json:select expression says
 something like: find an _object_ (json hash) that has a _rel_ child/field whose value is _self_
 and then extract the value of the _href_ child/field. The _object_ here matches the
 `{"href":"/api/clouds/7","rel":"self"}` hash.
 
 Illustrating the difference between `--x1`, `--xm`, and `--xj`:
 - `--x1` produces: `rs-api: error: Multiple values selected, result was:
-  <<[{"cloud_type":"amazon","descr... >>` with a non-zero exit code
+  <<[{"cloud_type":"amazon","descr... >>` with a non-zero exit code (it prints the raw json
+	for troubleshootingpurposes).
 - `--xm` produces: `"/api/clouds/1" "/api/clouds/3" "/api/clouds/4" "/api/clouds/5"
   "/api/clouds/6" "/api/clouds/7" "/api/clouds/2" "/api/clouds/8" "/api/clouds/9"` and can be used
 	in bash as `cloud_hrefs=(`./rs-api ...`)
@@ -127,10 +128,10 @@ Illustrating the difference between `--x1`, `--xm`, and `--xj`:
 - Find a running or stopped instance by public IP address in AWS us-east (cloud #1):
 ```
 $ ./rs-api --host us-3.rightscale.com --key 1234567890 \
---xm 'object:has(.rel:val("self")).href' /api/clouds/1/instances index \
-'filter[]=public_ip_address==54.147.25.88' 'filter[]=state<>terminated' \
-'filter[]=state<>decommissioning' 'filter[]=state<>terminating' \
-'filter[]=state<>stopping' 'filter[]=state<>provisioned' 'filter[]=state<>failed'
+           --xm 'object:has(.rel:val("self")).href' /api/clouds/1/instances index \
+           'filter[]=public_ip_address==54.147.25.88' 'filter[]=state<>terminated' \
+           'filter[]=state<>decommissioning' 'filter[]=state<>terminating' \
+           'filter[]=state<>stopping' 'filter[]=state<>provisioned' 'filter[]=state<>failed'
 "/api/clouds/1/instances/LAB4OFL7I82E"
 ```
 
