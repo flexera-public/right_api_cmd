@@ -17,6 +17,10 @@
 NAME=rs-api
 BUCKET=rightscale-binaries
 ACL=public-read
+DEPEND=golang.org/x/tools/cmd/cover github.com/onsi/ginkgo/ginkgo \
+			 github.com/rlmcpherson/s3gof3r/gof3r github.com/coddingtonbear/go-jsonselect
+
+#=== below this line ideally remains unchanged ===
 
 TRAVIS_BRANCH?=dev
 DATE=$(shell date '+%F %T')
@@ -67,9 +71,7 @@ version:
 # Travis doing this. The folllowing just relies on go get no reinstalling when it's already
 # there, like your laptop.
 depend:
-	go get golang.org/x/tools/cmd/cover
-	go get github.com/onsi/ginkgo/ginkgo
-	go get github.com/rlmcpherson/s3gof3r/gof3r
+	go get $(DEPEND)
 
 clean:
 	rm -rf build _aws-sdk
@@ -82,29 +84,3 @@ test:
 	ginkgo -r
 	ginkgo -r -cover
 	go tool cover -func=`basename $$PWD`.coverprofile
-
-# Pull fresh metadata for AWS services by cloning the AWS Ruby SDK and copying out the
-# relevant directory. This is pretty slow...
-meta-pull:
-	git clone https://github.com/aws/aws-sdk-core-ruby _aws-sdk
-	mv _aws-sdk/aws-sdk-core/apis aws-metadata
-	rm -rf _aws-sdk
-
-# Update the RightScale-massaged metadata by passing the AWS metadata through the
-# rest-analyzer tool
-meta-analyze: ./aws-metadata ./analyze
-	mkdir -p ./rest-metadata
-	rm -f ./rest-metadata/*
-	for s in ./aws-metadata/*.resources.json; do \
-	  svc=`basename -s .resources.json $$s`; \
-	  ./analyze --service $$svc --path ./aws-metadata --resource-only --force \
-		  >./rest-metadata/$$svc.yaml; \
-	done
-aws-metadata:
-	@echo "AWS metadata is missing from ./aws-metadata, it should be checked into the"
-	@echo "repo, but you can pull it using make meta-pull if you have to"
-	@exit 1
-analyze:
-	@echo "You need a local symlink that points to the (ruby) rest-analyzer program"
-	@echo "like: ln -s ~/src/rest-analyzer/bin/analyzer.rb analyze"
-	@exit 1
