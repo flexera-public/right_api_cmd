@@ -39,14 +39,17 @@ Flags:
    line (in _bash_ use something like `clouds=(\`rs-api --xm ...\`)` to get the results into a list
 - `--xj=<JSONselect>` is the same as `--xm` but prints the result as a json array
 - `--xh=<header> extracts the named header
-- `--noRedirect` tells rs-api not to follow any redirects
-- `--fetch` tells rs-api to fetch any resource referenced in a response Location header, this
-  is helpful to "auto-fetch" a newly created resource
 
 Extracted values are printed on stdout. `--x1` and `--xh` print the result in one line,
 `--xm` prints the result as one value per line
 (in _bash_ use something like `clouds=($(rs-api --xm ...))` to get the results into a list).
 `--xj=` prints the result as a json array.
+
+If `--host` or `--key`` are not specified, and `--rl10` is also not specified (i.e., rs-api is
+asked to contact the RS platform directly) either of these values can be read from the
+environment variables `RS_api_hostname` respectively `RS_api_key`.
+However, if `--rl10` is specified the environment variables are not consulted but
+`/var/run/rll-secret` is.
 
 Exit codes:
 - 0 = all OK
