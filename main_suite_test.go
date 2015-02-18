@@ -20,5 +20,5 @@ func TestRLCmd(t *testing.T) {
 
 	format.UseStringerRepresentation = true
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "RL_CMD")
+	RunSpecs(t, "RL-API")
 }

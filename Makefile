@@ -9,7 +9,7 @@
 # travis-test: just runs unit tests recursively
 # clean: removes build stuff
 #
-# HACKS - a couple of things here are unconventional in order to keep travis-ci fast
+# HACKS - a couple of things here are unconventional in order to keep travis-ci fast:
 # - use 'godep save' on your laptop if you add dependencies, but we don't use godep in the
 #   makefile, instead, we simply add the godep workspace to the GOPATH
 
@@ -71,21 +71,6 @@ depend:
 	go get github.com/onsi/ginkgo/ginkgo
 	go get github.com/rlmcpherson/s3gof3r/gof3r
 
-# The targets below were an attempt to preinstall this stuff in the repository
-#depend: Godeps/_workspace/bin/ginkgo Godeps/_workspace/bin/gof3r
-#depend: Godeps/_workspace/bin/cover Godeps/_workspace/bin/ginkgo Godeps/_workspace/bin/gof3r
-# go install will not produce ./Godeps/_workspace/bin/cover if you have 'cover' installed
-# in $GOROOT (which is quite OK), hence we ignore if the cp fails
-#Godeps/_workspace/bin/cover:
-#	go get golang.org/x/tools/cmd/cover
-#	#go install golang.org/x/tools/cmd/cover # Go1.3 version
-#	#@cp ./Godeps/_workspace/bin/cover `go env GOTOOLDIR` 2>/dev/null || \
-#	#  echo "Using already installed go cover"
-#Godeps/_workspace/bin/ginkgo:
-#	go get github.com/onsi/ginkgo/ginkgo
-#Godeps/_workspace/bin/gof3r:
-#	go get github.com/rlmcpherson/s3gof3r/gof3r
-
 clean:
 	rm -rf build _aws-sdk
 	@echo "package main; const VV = \"$(NAME) unversioned - $(DATE)\"" >version.go
@@ -96,7 +81,7 @@ travis-test:
 test:
 	ginkgo -r
 	ginkgo -r -cover
-	go tool cover -func=$(NAME).coverprofile
+	go tool cover -func=`basename $$PWD`.coverprofile
 
 # Pull fresh metadata for AWS services by cloning the AWS Ruby SDK and copying out the
 # relevant directory. This is pretty slow...

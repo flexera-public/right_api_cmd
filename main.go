@@ -102,7 +102,15 @@ var rightscale = func() Client {
 		}
 	} else {
 		// we're gonna go direct to RightScale
-		rsClientInternal, err = NewDirectClient(*host, *rsKey, *debugFlag)
+		h := *host
+		if h == "" {
+			h = os.Getenv("RS_api_hostname")
+		}
+		k := *rsKey
+		if k == "" {
+			k = os.Getenv("RS_api_key")
+		}
+		rsClientInternal, err = NewDirectClient(h, k, *debugFlag)
 		if err != nil {
 			kingpin.FatalIfError(err, "")
 		}
