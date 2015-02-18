@@ -108,8 +108,8 @@ $ ./rs-api --host us-3.rightscale.com --key 1234567890 \
 Note: the match `object:has(.rel:val("self")).href` serves to extract the hrefs from the _self_
 links. The returned json for each cloud includes
 `"links":[ {"href":"/api/clouds/7", "rel":"self"}, {"href":"/api/clouds/7/datacenters",
-"rel":"datacenters"}, ... ]` and the json:select expression says
-something like: find an _object_ (json hash) that has a _rel_ child/field whose value is _self_
+"rel":"datacenters"}, ... ]` and the json:select expression says:
+find an _object_ (json hash) that has a _rel_ child/field whose value is _self_
 and then extract the value of the _href_ child/field. The _object_ here matches the
 `{"href":"/api/clouds/7","rel":"self"}` hash.
 

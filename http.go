@@ -52,7 +52,7 @@ type Response struct {
 	errorMessage string
 	data         interface{}
 	raw          []byte
-	location     string // value of Location: response header
+	header       http.Header
 }
 
 //===== Client data structure and helper functions
@@ -310,7 +310,7 @@ func parseResponseBody(body io.Reader) (interface{}, error) {
 }
 
 func processResponse(req *http.Request, resp *http.Response) (*Response, error) {
-	r := Response{statusCode: resp.StatusCode, location: resp.Header.Get("Location")}
+	r := Response{statusCode: resp.StatusCode, header: resp.Header}
 	if resp.StatusCode >= 200 && resp.StatusCode < 299 {
 		var err error
 		r.raw, err = readBody(resp)

@@ -42,13 +42,13 @@ Non-zero exit codes indicate a problem: 1 -> HTTP 401, 2 -> HTTP 4XX, 3 -> HTTP 
 4 -> HTTP 404, 5 -> HTTP 5XX
 `)
 
-	debugFlag   = app.Flag("debug", "Enable verbose request and response logging").Bool()
-	host        = app.Flag("host", "host:port for API endpoint").String()
-	rsKey       = app.Flag("key", "RightScale API key or RL10 proxy secret").String()
-	prettyFlag  = app.Flag("pretty", "pretty-print output").Bool()
-	fetchFlag   = app.Flag("fetch", "auto-fetch resource returned in Location header").Bool()
-	noRedirFlag = app.Flag("noRedirect", "do not follow any redirects").Bool()
-	rl10Flag    = app.Flag("rl10", "use RightLink10 proxy and auto-detect port/secret "+
+	debugFlag  = app.Flag("debug", "Enable verbose request and response logging").Bool()
+	host       = app.Flag("host", "host:port for API endpoint or RL10 proxy").String()
+	rsKey      = app.Flag("key", "RightScale API key or RL10 proxy secret").String()
+	prettyFlag = app.Flag("pretty", "pretty-print json output").Bool()
+	//fetchFlag   = app.Flag("fetch", "auto-fetch resource returned in Location header").Bool()
+	//noRedirFlag = app.Flag("noRedirect", "do not follow any redirects").Bool()
+	rl10Flag = app.Flag("rl10", "use RightLink10 proxy and auto-detect port/secret "+
 		"unless -host flag is provided").Bool()
 
 	resourceHref = app.Arg("resource-href", "href of resource to operate on or shortcut, "+
@@ -58,8 +58,13 @@ Non-zero exit codes indicate a problem: 1 -> HTTP 401, 2 -> HTTP 4XX, 3 -> HTTP 
 	arguments = app.Arg("parameters", "arguments to the API call as described in API docs, "+
 		"ex: 'server[instance][href]=/api/instances/123456'").Strings()
 
-	x1 = app.Flag("x1", "extract data from response using json:select").String()
-	xm = app.Flag("xm", "extract data from response using json:select").String()
+	x1 = app.Flag("x1", "extract single value from response using json:select, "+
+		"print on one line").String()
+	xm = app.Flag("xm", "extract multiple values from response using json:select, "+
+		"print one value per line").String()
+	xj = app.Flag("xj", "extract data from response using json:select, "+
+		"print values as json array on one line").String()
+	xh = app.Flag("xh", "extract value of named header and print on one line").String()
 
 //	setTag    = app.Command("set_tag", "Set tags on the instance")
 //	tagsToSet = setTag.Arg("tags", "Tags to add, e.g. rs_agent:monitoring=true").
@@ -133,13 +138,32 @@ func main() {
 		actionName = &i
 	}
 
-	if *x1 != "" && *xm != "" {
-		kingpin.Fatalf("cannot specify --x1 and --xm atthe same time")
+	// ensure only one extract flag is given -- is there a better way to code this??
+	xFlags := 0
+	selectExpr := *x1
+	selectOne := false
+	if *x1 != "" {
+		xFlags += 1
+		selectOne = true
+	}
+	if *xm != "" {
+		xFlags += 1
+		selectExpr = *xm
+	}
+	if *xj != "" {
+		xFlags += 1
+		selectExpr = *xj
+	}
+	if *xh != "" {
+		xFlags += 1
+	}
+	if xFlags > 1 {
+		kingpin.Fatalf("cannot specify --x1 and --xm at the same time")
 	}
 
-	js := doRequest(*resourceHref, *actionName, *arguments)
+	resp, js := doRequest(*resourceHref, *actionName, *arguments)
 
-	if *x1 == "" && *xm == "" {
+	if xFlags == 0 {
 		// not extracting, let's print the json pretty or not
 		if *prettyFlag {
 			var buf bytes.Buffer
@@ -150,13 +174,13 @@ func main() {
 		return
 	}
 
-	// let's extract something using json:select
-	selectExpr := *x1
-	selectOne := true
-	if *xm != "" {
-		selectExpr = *xm
-		selectOne = false
+	if *xh != "" {
+		// we're extracting a header
+		fmt.Println(resp.header.Get(*xh))
+		return
 	}
+
+	// let's extract something using json:select
 	parser, err := jsonselect.CreateParserFromString(string(js))
 	kingpin.FatalIfError(err, "")
 	values, err := parser.GetValues(selectExpr)
@@ -169,10 +193,18 @@ func main() {
 			kingpin.Fatalf("Multiple values selected, result was: <<%s>>", string(js))
 		}
 	}
-	for _, v := range values {
-		js, err := json.Marshal(v)
+	if *xj != "" {
+		// print array of json values
+		js, err := json.Marshal(values)
 		kingpin.FatalIfError(err, "Error printing selected value")
 		fmt.Println(string(js))
+	} else {
+		// print one value per line
+		for _, v := range values {
+			js, err := json.Marshal(v)
+			kingpin.FatalIfError(err, "Error printing selected value")
+			fmt.Println(string(js))
+		}
 	}
 
 }
@@ -184,7 +216,8 @@ var crudActions = map[string]string{
 	"update": "POST", "create": "POST", "delete": "DELETE",
 }
 
-func doRequest(resourceHref, actionName string, arguments []string) []byte {
+// performs the request and returns a *Response and the parsed json, bombs on error
+func doRequest(resourceHref, actionName string, arguments []string) (*Response, []byte) {
 
 	// query-string encode the arguments
 	// we don't use url.Values because we allow multiple arguments with the same
@@ -211,7 +244,7 @@ func doRequest(resourceHref, actionName string, arguments []string) []byte {
 	js, err := json.Marshal(resp.data)
 	kingpin.FatalIfError(err, "")
 
-	return js
+	return resp, js
 }
 
 // findRel finds a relationship in a json links collections and returns the href, i.e. given
