@@ -89,6 +89,7 @@ $ ./rs-api --host us-3.rightscale.com --key 1234567890 \
 ```
 cloud=$(./rs-api --host us-3.rightscale.com --key 1234567890 \
         --x1 'object:has(.rel:val("cloud")).href' /api/clouds/1/instances/LAB4OFL7I82E show)
+```
 
 - Find the hrefs of all clouds of type amazon:
 ```
