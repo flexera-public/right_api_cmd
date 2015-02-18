@@ -28,27 +28,30 @@ and the same parameters.
   request
 
 Flags:
-- `-host=<hostname:port>` is the hostname (and optional :port suffix) for the RightScale APi endpoint
-- `-key=<key>` is the RightScale API key to authenticate
-- `-rl10` tells rs-api to proxy through RightLink10 and locate the RL10 port and secret in
+- `--host=<hostname:port>` is the hostname (and optional :port suffix) for the RightScale APi endpoint
+- `--key=<key>` is the RightScale API key to authenticate
+- `--rl10` tells rs-api to proxy through RightLink10 and locate the RL10 port and secret in
   `/var/run/rll-secret`
-- `-pretty` pretty-prints the result
-- `-x1=<JSONselect>` extracts the single value using the [JSON:select](http://jsonselect.org) expression
-- `-xm=<JSONselect>` extracts zero, one or multiple values
-- `-xl=<JSONselect>` extracts the href of a link
-- `-xh=<header> extracts the named header
-- `-noRedirect` tells rs-api not to follow any redirects
-- `-fetch` tells rs-api to fetch any resource referenced in a response Location header, this
+- `--pretty` pretty-prints the result
+- `--x1=<JSONselect>` extracts the single value using the [JSON:select](http://jsonselect.org)
+   expression
+- `--xm=<JSONselect>` extracts zero, one or multiple values and prints the result as one value per
+   line (in _bash_ use something like `clouds=(\`rs-api --xm ...\`)` to get the results into a list
+- `--xj=<JSONselect>` is the same as `--xm` but prints the result as a json array
+- `--xh=<header> extracts the named header
+- `--noRedirect` tells rs-api not to follow any redirects
+- `--fetch` tells rs-api to fetch any resource referenced in a response Location header, this
   is helpful to "auto-fetch" a newly created resource
 
-Extracted values are printed on stdout in json, if a single -x option is provided then
-just the extracted value is printed, if multiple options are provided then a JSON hash is
-printed with the json paths and/or header field names as keys and the extracted values as
-values.
+Extracted values are printed on stdout. `--x1` and `--xh` print the result in one line,
+`--xm` prints the result as one value per line
+(in _bash_ use something like `clouds=(\`rs-api --xm ...\`)` to get the results into a list).
+`--xj=` prints the result as a json array>
 
 Exit codes:
 - 0 = all OK
 - 1 = an error occurred
+
 (Is it worth implementing the following more detailed exit codes?
 - 1 = 401 authorization required
 - 2 = 4XX other client error
@@ -63,31 +66,37 @@ Examples
 
 - Find instance's public IP addresses
 ```
-$ ./rs-api --host us-3.rightscale.com --key e22f8d371d70fc4b6f5d4dd1f1ec27e4c8e3a498 --x1 '.public_ip_addresses' /api/clouds/1/instances/LAB4OFL7I82E show
+$ ./rs-api --host us-3.rightscale.com --key 1234567890 \
+--x1 '.public_ip_addresses' /api/clouds/1/instances/LAB4OFL7I82E show
 ["54.147.25.88"]
 ```
 
 - Find an instance's resource_uid:
 ```
-./rs-api --host us-3.rightscale.com --key e22f8d371d70fc4b6f5d4dd1f1ec27e4c8e3a498 --x1 '.resource_uid' /api/clouds/1/instances/LAB4OFL7I82E show
+./rs-api --host us-3.rightscale.com --key 1234567890 \
+--x1 '.resource_uid' /api/clouds/1/instances/LAB4OFL7I82E show
 "i-4e9a80b5"
 ```
 
 - Find an instance's server href:
 ```
-$ ./rs-api --host us-3.rightscale.com --key 1234567890 --x1 'object:has(.rel:val("parent")).href' /api/clouds/1/instances/LAB4OFL7I82E show
+$ ./rs-api --host us-3.rightscale.com --key 1234567890 \
+--x1 'object:has(.rel:val("parent")).href' /api/clouds/1/instances/LAB4OFL7I82E show
 "/api/servers/994838003"
 ```
 
 - Find an instance's cloud type:
 ```
-cloud=`./rs-api --host us-3.rightscale.com --key e22f8d371d70fc4b6f5d4dd1f1ec27e4c8e3a498 --x1 'object:has(.rel:val("cloud")).href' /api/clouds/1/instances/LAB4OFL7I82E show`
+cloud=`./rs-api --host us-3.rightscale.com --key 1234567890 \
+--x1 'object:has(.rel:val("cloud")).href' /api/clouds/1/instances/LAB4OFL7I82E show`
 
 - Find the hrefs of all clouds of type amazon:
 ```
-./rs-api --host us-3.rightscale.com --key e22f8d371d70fc4b6f5d4dd1f1ec27e4c8e3a498 clouds index 'filter[]=cloud_type==amazon'
+./rs-api --host us-3.rightscale.com --key 1234567890 \
+clouds index 'filter[]=cloud_type==amazon'
 ```
-$ ./rs-api --host us-3.rightscale.com --key e22f8d371d70fc4b6f5d4dd1f1ec27e4c8e3a498 --xm 'object:has(.rel:val("self")).href' clouds index 'filter[]=cloud_type==amazon'
+$ ./rs-api --host us-3.rightscale.com --key 1234567890 \
+--xm 'object:has(.rel:val("self")).href' clouds index 'filter[]=cloud_type==amazon'
 "/api/clouds/1"
 "/api/clouds/3"
 "/api/clouds/4"
@@ -117,7 +126,11 @@ Illustrating the difference between `--x1`, `--xm`, and `--xj`:
 
 - Find a running or stopped instance by public IP address in AWS us-east (cloud #1):
 ```
-$ ./rs-api --host us-3.rightscale.com --key e22f8d371d70fc4b6f5d4dd1f1ec27e4c8e3a498 --xm 'object:has(.rel:val("self")).href' /api/clouds/1/instances index 'filter[]=public_ip_address==54.147.25.88' 'filter[]=state<>terminated' 'filter[]=state<>decommissioning' 'filter[]=state<>terminating' 'filter[]=state<>stopping' 'filter[]=state<>provisioned' 'filter[]=state<>failed'
+$ ./rs-api --host us-3.rightscale.com --key 1234567890 \
+--xm 'object:has(.rel:val("self")).href' /api/clouds/1/instances index \
+'filter[]=public_ip_address==54.147.25.88' 'filter[]=state<>terminated' \
+'filter[]=state<>decommissioning' 'filter[]=state<>terminating' \
+'filter[]=state<>stopping' 'filter[]=state<>provisioned' 'filter[]=state<>failed'
 "/api/clouds/1/instances/LAB4OFL7I82E"
 ```
 
