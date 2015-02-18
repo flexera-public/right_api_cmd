@@ -4,6 +4,9 @@ RightScale API Command Line Client
 This simple binary executable simplifies performing RightAPI 1.5 and RightAPI 1.6 calls
 from the command line, either interactively or in shell scripts.
 
+- Master: [![Build Status](https://travis-ci.org/rightscale/right_api_cmd.svg?branch=master)](https://travis-ci.org/rightscale/right_api_cmd)
+  ![Code Coverage](https://s3.amazonaws.com/rs-code-coverage/right_api_cmd/cc_badge_master.svg)
+
 Synopsis
 --------
 

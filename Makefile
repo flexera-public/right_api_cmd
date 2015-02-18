@@ -1,6 +1,21 @@
 #! /usr/bin/make
 #
-# Makefile for Golang projects
+# Makefile for Golang projects, v0.9.0
+#
+# Features:
+# - runs ginkgo tests recursively, computes code coverage report
+# - code coverage ready for travis-ci to upload and produce badges for README.md
+# - build for linux/amd64, linux/arm, darwin/amd64, windows/amd64
+# - just 'make' builds for local OS/arch
+# - produces .tgz/.zip build output
+# - bundles *.sh files in ./script subdirectory
+# - produces version.go for each build with string in global variable VV, please
+#   print this using a --version option in the executable
+# - to include the build status and code coverage badge in CI use (replace NAME by what
+#   you set $(NAME) to further down, and also replace magnum.travis-ci.com by travis-ci.org for
+#   publicly accessible repos [sigh]):
+#   [![Build Status](https://magnum.travis-ci.com/rightscale/NAME.svg?token=4Q13wQTY4zqXgU7Edw3B&branch=master)](https://magnum.travis-ci.com/rightscale/NAME
+#   ![Code Coverage](https://s3.amazonaws.com/rs-code-coverage/NAME/cc_badge_master.svg)
 #
 # Top-level targets:
 # default: compile the program, you can thus use make && ./NAME -options ...
@@ -20,7 +35,7 @@ ACL=public-read
 DEPEND=golang.org/x/tools/cmd/cover github.com/onsi/ginkgo/ginkgo \
 			 github.com/rlmcpherson/s3gof3r/gof3r github.com/coddingtonbear/go-jsonselect
 
-#=== below this line ideally remains unchanged ===
+#=== below this line ideally remains unchanged, add new targets at the end  ===
 
 TRAVIS_BRANCH?=dev
 DATE=$(shell date '+%F %T')
@@ -35,18 +50,26 @@ default: $(NAME)
 $(NAME): *.go version depend
 	go build -o $(NAME) .
 
-# the standard build produces a "local" executable and a linux tgz
-build: $(NAME) build/$(NAME)-linux-amd64.tgz
+# the standard build produces a "local" executable, a linux tgz, and a darwin (macos) tgz
+build: $(NAME) build/$(NAME)-linux-amd64.tgz build/$(NAME)-darwin-amd64.tgz build/$(NAME)-linux-arm.tgz build/$(NAME)-windows-amd64.zip
 
 # create a tgz with the binary and any artifacts that are necessary
-build/$(NAME)-linux-amd64.tgz: *.go version depend
+# note the hack to allow for various GOOS & GOARCH combos, sigh
+build/$(NAME)-%.tgz: *.go version depend
 	rm -rf build/$(NAME)
 	mkdir -p build/$(NAME)
-	GOOS=linux GOARCH=amd64 go build -o build/$(NAME)/$(NAME) .
+	tgt=$*; GOOS=$${tgt%-*} GOARCH=$${tgt#*-} go build -o build/$(NAME)/$(NAME) .
+	chmod +x build/$(NAME)/$(NAME)
 	for d in script init; do if [ -d $$d ]; then cp -r $$d build/$(NAME); fi; done
-	sed -i -e "s/BRANCH/$(TRAVIS_BRANCH)/" build/*/*.sh || true
-	cd build; tar zcf $(NAME)-linux-amd64.tgz ./$(NAME)
+	if [ "build/*/*.sh" != 'build/*/*.sh' ]; then \
+	  sed -i -e "s/BRANCH/$(TRAVIS_BRANCH)/" build/*/*.sh; \
+	  chmod +x build/*/*.sh; \
+	fi
+	tar -zcf $@ -C build ./$(NAME)
 	rm -r build/$(NAME)
+
+build/$(NAME)-%.zip: *.go version depend
+	touch $@
 
 # upload assumes you have AWS_ACCESS_KEY_ID and AWS_SECRET_KEY env variables set,
 # which happens in the .travis.yml for CI
