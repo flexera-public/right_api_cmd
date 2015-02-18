@@ -58,7 +58,8 @@ Non-zero exit codes indicate a problem: 1 -> HTTP 401, 2 -> HTTP 4XX, 3 -> HTTP 
 	arguments = app.Arg("parameters", "arguments to the API call as described in API docs, "+
 		"ex: 'server[instance][href]=/api/instances/123456'").Strings()
 
-	extract = app.Flag("x", "extract data from response using json:select").String()
+	x1 = app.Flag("x1", "extract data from response using json:select").String()
+	xm = app.Flag("xm", "extract data from response using json:select").String()
 
 //	setTag    = app.Command("set_tag", "Set tags on the instance")
 //	tagsToSet = setTag.Arg("tags", "Tags to add, e.g. rs_agent:monitoring=true").
@@ -105,7 +106,7 @@ var rightscale = func() Client {
 	return rsClientInternal
 }
 
-var reResourceHref = regexp.MustCompile(`^([a-z0-9_]+)|(/(api|rll)(/[a-z0-9_]+)+)$`)
+var reResourceHref = regexp.MustCompile(`^([a-z0-9_]+)|(/(api|rll)(/[A-Za-z0-9_]+)+)$`)
 
 func main() {
 	_ = kingpin.MustParse(app.Parse(os.Args[1:]))
@@ -132,19 +133,48 @@ func main() {
 		actionName = &i
 	}
 
-	doRequest(*resourceHref, *actionName, *arguments)
+	if *x1 != "" && *xm != "" {
+		kingpin.Fatalf("cannot specify --x1 and --xm atthe same time")
+	}
 
-	/*
-		switch dispatch {
-		case setTag.FullCommand():
-			fmt.Printf("Tags: %#v\n", tagsToSet)
-			selfHref := getSelfHref()
-			setTagCmd(selfHref)
-		default:
-			app.Usage(os.Stderr)
-			os.Exit(1)
+	js := doRequest(*resourceHref, *actionName, *arguments)
+
+	if *x1 == "" && *xm == "" {
+		// not extracting, let's print the json pretty or not
+		if *prettyFlag {
+			var buf bytes.Buffer
+			json.Indent(&buf, js, "", "  ")
+			js = buf.Bytes()
 		}
-	*/
+		fmt.Println(string(js))
+		return
+	}
+
+	// let's extract something using json:select
+	selectExpr := *x1
+	selectOne := true
+	if *xm != "" {
+		selectExpr = *xm
+		selectOne = false
+	}
+	parser, err := jsonselect.CreateParserFromString(string(js))
+	kingpin.FatalIfError(err, "")
+	values, err := parser.GetValues(selectExpr)
+	kingpin.FatalIfError(err, "")
+
+	if selectOne {
+		if len(values) == 0 {
+			kingpin.Fatalf("No value selected, result was: <<%s>>", string(js))
+		} else if len(values) > 1 {
+			kingpin.Fatalf("Multiple values selected, result was: <<%s>>", string(js))
+		}
+	}
+	for _, v := range values {
+		js, err := json.Marshal(v)
+		kingpin.FatalIfError(err, "Error printing selected value")
+		fmt.Println(string(js))
+	}
+
 }
 
 var reArgument = regexp.MustCompile(`^([a-zA-Z0-9_\[\]]+)=(.*)`)
@@ -154,7 +184,7 @@ var crudActions = map[string]string{
 	"update": "POST", "create": "POST", "delete": "DELETE",
 }
 
-func doRequest(resourceHref, actionName string, arguments []string) {
+func doRequest(resourceHref, actionName string, arguments []string) []byte {
 
 	// query-string encode the arguments
 	// we don't use url.Values because we allow multiple arguments with the same
@@ -181,23 +211,7 @@ func doRequest(resourceHref, actionName string, arguments []string) {
 	js, err := json.Marshal(resp.data)
 	kingpin.FatalIfError(err, "")
 
-	if extract == nil {
-		// not extracting, let's print the json pretty or not
-		if *prettyFlag {
-			var buf bytes.Buffer
-			json.Indent(&buf, js, "", "  ")
-			js = buf.Bytes()
-		}
-		fmt.Println(string(js))
-		return
-	}
-
-	// let's extract something using json:select
-	parser, err := jsonselect.CreateParserFromString(string(js))
-	kingpin.FatalIfError(err, "")
-	values, err := parser.GetValues(*extract)
-	kingpin.FatalIfError(err, "")
-	fmt.Print(values)
+	return js
 }
 
 // findRel finds a relationship in a json links collections and returns the href, i.e. given

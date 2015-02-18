@@ -37,7 +37,7 @@ _testmain.go
 *.coverprofile
 .goxc.*
 rightlink_cmd
-rs_cmd
+rs-api
 ssh_key
 build
 version.go
