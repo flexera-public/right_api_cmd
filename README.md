@@ -93,9 +93,6 @@ cloud=$(./rs-api --host us-3.rightscale.com --key 1234567890 \
 
 - Find the hrefs of all clouds of type amazon:
 ```
-./rs-api --host us-3.rightscale.com --key 1234567890 \
-clouds index 'filter[]=cloud_type==amazon'
-```
 $ ./rs-api --host us-3.rightscale.com --key 1234567890 \
            --xm 'object:has(.rel:val("self")).href' clouds index 'filter[]=cloud_type==amazon'
 "/api/clouds/1"
