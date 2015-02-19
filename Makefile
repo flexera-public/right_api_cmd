@@ -100,7 +100,13 @@ clean:
 	rm -rf build _aws-sdk
 	@echo "package main; const VV = \"$(NAME) unversioned - $(DATE)\"" >version.go
 
-travis-test:
+lint:
+	@if gofmt -l *.go */*.go | grep .go; then \
+	  echo "^- Repo contains improperly formatted go files" && exit 1; \
+	  else echo "All .go files formatted correctly"; fi
+	go vet ./...
+
+travis-test: lint
 	ginkgo -r -cover
 
 test:
