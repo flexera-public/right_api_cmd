@@ -243,6 +243,7 @@ func doRequest(resourceHref, actionName string, arguments []string) (*Response, 
 	method := crudActions[actionName]
 	if method == "" {
 		method = "POST" // custom actions all use POST
+		resourceHref += "/" + actionName
 	}
 
 	resp, err := rightscale().Do(method, resourceHref, arguments, "", "")
