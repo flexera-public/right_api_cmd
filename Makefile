@@ -86,7 +86,7 @@ upload: depend
 # produce a version string that is embedded into the binary that captures the branch, the date
 # and the commit we're building
 version:
-	@echo "package main; const VV = \"$(NAME) $(TRAVIS_BRANCH) - $(DATE) - $(TRAVIS_COMMIT)\"" \
+	@echo "package main\n\nconst VV = \"$(NAME) $(TRAVIS_BRANCH) - $(DATE) - $(TRAVIS_COMMIT)\"" \
 	  >version.go
 	@echo "version.go: `cat version.go`"
 
@@ -100,6 +100,8 @@ clean:
 	rm -rf build _aws-sdk
 	@echo "package main; const VV = \"$(NAME) unversioned - $(DATE)\"" >version.go
 
+# gofmt uses the awkward *.go */*.go because gofmt -l . descends into the Godeps workspace
+# and then pointlessly complains about bad formatting in imported packages, sigh
 lint:
 	@if gofmt -l *.go */*.go | grep .go; then \
 	  echo "^- Repo contains improperly formatted go files" && exit 1; \
@@ -109,7 +111,10 @@ lint:
 travis-test: lint
 	ginkgo -r -cover
 
-test:
+# running ginkgo twice, sadly, the problem is that -cover modifies the source code with the effect
+# that if there are errors the output of gingko refers to incorrect line numbers
+# tip: if you don't like colors use gingkgo -r -noColor
+test: lint
 	ginkgo -r
 	ginkgo -r -cover
 	go tool cover -func=`basename $$PWD`.coverprofile
