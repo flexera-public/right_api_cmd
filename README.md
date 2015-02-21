@@ -24,14 +24,14 @@ and the same parameters.
   for a "global" collection such as `servers` (same as `/api/servers`), and `self` can be
 	used as the instance's self_href.
 - `action` is one of the actions defined on the resource as named in the API docs, such as
-  `index`, `show, `create`, `update`, `delete`, `terminate`, `multi_add`, ...
+  `index`, `show`, `create`, `update`, `delete`, `terminate`, `multi_add`, ...
 - `parameters` are the query string parameters as defined in the API docs, such as
   `instance[name]=my instance`, without any query-string encoding (there is no ambiguity
   so rs-api can parse the command line and query-string encode when forming the HTTP
   request
 
 Flags:
-- `--host=<hostname:port>` is the hostname (and optional :port suffix) for the RightScale APi endpoint
+- `--host=<hostname:port>` is the hostname (and optional :port suffix) for the RightScale API endpoint
 - `--key=<key>` is the RightScale API key to authenticate
 - `--rl10` tells rs-api to proxy through RightLink10 and locate the RL10 port and secret in
   `/var/run/rll-secret`
@@ -41,14 +41,14 @@ Flags:
 - `--xm=<JSONselect>` extracts zero, one or multiple values and prints the result as one value per
    line (in _bash_ use something like `clouds=(\`rs-api --xm ...\`)` to get the results into a list
 - `--xj=<JSONselect>` is the same as `--xm` but prints the result as a json array
-- `--xh=<header> extracts the named header
+- `--xh=<header>` extracts the named header
 
 Extracted values are printed on stdout. `--x1` and `--xh` print the result in one line,
 `--xm` prints the result as one value per line
 (in _bash_ use something like `clouds=($(rs-api --xm ...))` to get the results into a list).
-`--xj=` prints the result as a json array.
+`--xj` prints the result as a json array.
 
-If `--host` or `--key`` are not specified, and `--rl10` is also not specified (i.e., rs-api is
+If `--host` or `--key` are not specified, and `--rl10` is also not specified (i.e., rs-api is
 asked to contact the RS platform directly) either of these values can be read from the
 environment variables `RS_api_hostname` respectively `RS_api_key`.
 However, if `--rl10` is specified the environment variables are not consulted but
@@ -93,8 +93,9 @@ $ ./rs-api --host us-3.rightscale.com --key 1234567890 \
 
 - Find an instance's cloud type:
 ```
-cloud=$(./rs-api --host us-3.rightscale.com --key 1234567890 \
-        --x1 'object:has(.rel:val("cloud")).href' /api/clouds/1/instances/LAB4OFL7I82E show)
+$ ./rs-api --host us-3.rightscale.com --key 1234567890 \
+           --x1 '.cloud_type' /api/clouds/1 show
+"amazon"
 ```
 
 - Find the hrefs of all clouds of type amazon:
@@ -122,10 +123,10 @@ and then extract the value of the _href_ child/field. The _object_ here matches 
 Illustrating the difference between `--x1`, `--xm`, and `--xj`:
 - `--x1` produces: `rs-api: error: Multiple values selected, result was:
   <<[{"cloud_type":"amazon","descr... >>` with a non-zero exit code (it prints the raw json
-	for troubleshootingpurposes).
+	for troubleshooting purposes).
 - `--xm` produces: `"/api/clouds/1" "/api/clouds/3" "/api/clouds/4" "/api/clouds/5"
   "/api/clouds/6" "/api/clouds/7" "/api/clouds/2" "/api/clouds/8" "/api/clouds/9"` and can be used
-	in bash as `cloud_hrefs=(`./rs-api ...`)
+	in bash as `cloud_hrefs=(./rs-api ...)`
 - `--xj` produces: `["/api/clouds/1", "/api/clouds/3", "/api/clouds/4", "/api/clouds/5",
    "/api/clouds/6", "/api/clouds/7", "/api/clouds/2", "/api/clouds/8", "/api/clouds/9"]`
 
