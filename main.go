@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"regexp"
@@ -38,8 +39,7 @@ By default the JSON response is printed but instead it is possible to extract va
 response and print those instead using a JSON:select syntax. See http://jsonselect.org/ for
 details.
 
-Non-zero exit codes indicate a problem: 1 -> HTTP 401, 2 -> HTTP 4XX, 3 -> HTTP 403,
-4 -> HTTP 404, 5 -> HTTP 5XX
+Non-zero exit codes indicate a problem
 `)
 
 	debugFlag  = app.Flag("debug", "Enable verbose request and response logging").Bool()
@@ -51,10 +51,10 @@ Non-zero exit codes indicate a problem: 1 -> HTTP 401, 2 -> HTTP 4XX, 3 -> HTTP 
 	rl10Flag = app.Flag("rl10", "use RightLink10 proxy and auto-detect port/secret "+
 		"unless -host flag is provided").Bool()
 
-	resourceHref = app.Arg("resource-href", "href of resource to operate on or shortcut, "+
-		"ex: /api/instances/1234, servers, server_templates, self").Required().String()
 	actionName = app.Arg("action", "name of action, ex: index, create, delete, launch, ...").
 			Required().String()
+	resourceHref = app.Arg("resource-href", "href of resource to operate on or shortcut, "+
+		"ex: /api/instances/1234, servers, server_templates, self").Required().String()
 	arguments = app.Arg("parameters", "arguments to the API call as described in API docs, "+
 		"ex: 'server[instance][href]=/api/instances/123456'").Strings()
 
@@ -64,11 +64,9 @@ Non-zero exit codes indicate a problem: 1 -> HTTP 401, 2 -> HTTP 4XX, 3 -> HTTP 
 		"print one value per line").String()
 	xj = app.Flag("xj", "extract data from response using json:select, "+
 		"print values as json array on one line").String()
-	xh = app.Flag("xh", "extract value of named header and print on one line").String()
-
-//	setTag    = app.Command("set_tag", "Set tags on the instance")
-//	tagsToSet = setTag.Arg("tags", "Tags to add, e.g. rs_agent:monitoring=true").
-//			Required().Strings()
+	xh         = app.Flag("xh", "extract value of named header and print on one line").String()
+	recordFile = app.Flag("record", "for test generation purposes, specifies a file to record "+
+		"all requests").String()
 )
 
 func init() { kingpin.Version(VV) }
@@ -82,6 +80,13 @@ func init() {
 		rllSecretPath = "C:\\some\\path\\rll-secret"
 	}
 }
+
+//===== Overrides for testing
+
+var osExit = os.Exit
+var osStdout = io.Writer(os.Stdout)
+
+//===== RightScale client handle
 
 var rsClientInternal Client // internal, do not use directly!
 //notused var rsProxyLocation string  // how to contact the proxy, either a file or host:port/secret
@@ -116,14 +121,58 @@ var rightscale = func() Client {
 		}
 	}
 
+	if *recordFile != "" {
+		rsClientInternal.RecordHttp(recorder)
+	}
+
 	return rsClientInternal
 }
 
+//===== Request Recording
+
+type MyRecording struct {
+	CmdArgs  []string         // command line arguments
+	ExitCode int              // Exit code
+	Stdout   string           // Exit print
+	RR       RequestRecording // back-end request/response
+}
+
+var ReqResp MyRecording // global var, we only have one request in flight
+
+//===== Main
+
 var reResourceHref = regexp.MustCompile(`^([a-z0-9_]+)|(/(api|rll)(/[A-Za-z0-9_]+)+)$`)
 
+// record the command line args but skip stuff that we shouldn't record
+func captureCmdArgs(args []string) []string {
+	rec := []string{}
+	skipArg := false // skip the next argument
+	for _, a := range os.Args[1:] {
+		if skipArg {
+			skipArg = false
+			continue
+		}
+		if a == "--record" { // don't record the record flag & filename
+			skipArg = true
+			continue
+		}
+		rec = append(rec, a)
+		if a == "--key" { // record a fake key, not the real one
+			rec = append(rec, "test-key")
+			skipArg = true
+		}
+	}
+	return rec
+}
+
 func main() {
+	// record the command line before we mess it up
+	ReqResp.CmdArgs = captureCmdArgs(os.Args[1:])
+
+	// hand the command line to kingpin for real parsing
 	_ = kingpin.MustParse(app.Parse(os.Args[1:]))
 
+	// validate resource href
 	if *resourceHref == "self" {
 		rh := getSelfHref()
 		resourceHref = &rh
@@ -171,6 +220,22 @@ func main() {
 
 	resp, js := doRequest(*resourceHref, *actionName, *arguments)
 
+	stdout, stderr, exit := doOutput(xFlags, selectOne, selectExpr, resp, js)
+
+	if *recordFile != "" {
+		ReqResp.Stdout = stdout
+		ReqResp.ExitCode = exit
+		fmt.Fprintf(os.Stderr, "REC:\n%+v\n\n", ReqResp)
+		recordToFile(*recordFile, ReqResp)
+	}
+
+	fmt.Fprintf(os.Stderr, stderr)
+	fmt.Printf(stdout)
+	os.Exit(exit)
+}
+
+func doOutput(xFlags int, selectOne bool, selectExpr string, resp *Response, js []byte) (string, string, int) {
+
 	if xFlags == 0 {
 		// not extracting, let's print the json pretty or not
 		if *prettyFlag {
@@ -178,50 +243,79 @@ func main() {
 			json.Indent(&buf, js, "", "  ")
 			js = buf.Bytes()
 		}
-		fmt.Println(string(js))
-		return
+
+		return string(js), "", 0
 	}
 
 	if *xh != "" {
 		// we're extracting a header
-		fmt.Println(resp.header.Get(*xh))
-		return
+		return resp.header.Get(*xh), "", 0
 	}
 
 	// let's extract something using json:select
 	parser, err := jsonselect.CreateParserFromString(string(js))
-	kingpin.FatalIfError(err, "")
+	if err != nil {
+		return "", err.Error(), 1
+	}
 	values, err := parser.GetValues(selectExpr)
-	kingpin.FatalIfError(err, "")
+	if err != nil {
+		return "", err.Error(), 1
+	}
 
 	if selectOne {
 		if len(values) == 0 {
-			kingpin.Fatalf("No value selected, result was: <<%s>>", string(js))
+			return "", fmt.Sprintf("No value selected, result was: <<%s>>", js), 1
 		} else if len(values) > 1 {
-			kingpin.Fatalf("Multiple values selected, result was: <<%s>>", string(js))
+			return "", fmt.Sprintf("Multiple values selected, result was: <<%s>>", js), 1
 		}
 	}
 	if *xj != "" {
 		// print array of json values
 		js, err := json.Marshal(values)
-		kingpin.FatalIfError(err, "Error printing selected value")
-		fmt.Println(string(js))
+		if err != nil {
+			return "", fmt.Sprintf("Error printing selected value: %s",
+				err.Error()), 1
+		}
+		return string(js), "", 0
 	} else {
 		// print one value per line
+		stdout := ""
 		for _, v := range values {
 			js, err := json.Marshal(v)
-			kingpin.FatalIfError(err, "Error printing selected value")
-			fmt.Println(string(js))
+			if err != nil {
+				return "", fmt.Sprintf("Error printing selected value: %s",
+					err.Error()), 1
+			}
+			if len(stdout) != 0 {
+				stdout += "\n" + string(js)
+			} else {
+				stdout = string(js)
+			}
 		}
+		return stdout, "", 0
 	}
-
 }
+
+//===== Perform a request
 
 var reArgument = regexp.MustCompile(`^([a-zA-Z0-9_\[\]]+)=(.*)`)
 
+// crud actions and their http verb
 var crudActions = map[string]string{
 	"index": "GET", "show": "GET", "list": "GET",
 	"update": "POST", "create": "POST", "delete": "DELETE",
+}
+
+// exceptions for custom actions with the URI suffic and http verb
+var exceptionActions = map[string][2]string{
+	"accounts":          [2]string{"/accounts", "GET"},
+	"current_instances": [2]string{"/current_instances", "GET"},
+	"data":              [2]string{"/data", "GET"},
+	"detail":            [2]string{"/detail", "GET"},
+	"multi_update":      [2]string{"/multi_update", "PUT"},
+	"servers":           [2]string{"/servers", "GET"},
+	"show_source":       [2]string{"/source", "GET"},
+	"update_source":     [2]string{"/source", "PUT"},
 }
 
 // performs the request and returns a *Response and the parsed json, bombs on error
@@ -239,13 +333,22 @@ func doRequest(resourceHref, actionName string, arguments []string) (*Response, 
 		arguments[i] = s[1] + "=" + url.QueryEscape(s[2])
 	}
 
-	// perform the request
+	// figure out the HTTP verb and exact URI, we have a table of CRUD actions, the rest
+	// mostly are POST with the action appended to the href, but there are a few exceptions...
 	method := crudActions[actionName]
 	if method == "" {
-		method = "POST" // custom actions all use POST
-		resourceHref += "/" + actionName
+		if e, ok := exceptionActions[actionName]; ok {
+			// one of the exceptions
+			resourceHref += e[0]
+			method = e[1]
+		} else {
+			// default is to use POST
+			method = "POST"
+			resourceHref += "/" + actionName
+		}
 	}
 
+	// perform the request
 	resp, err := rightscale().Do(method, resourceHref, arguments, "", "")
 	kingpin.FatalIfError(err, "")
 
@@ -255,6 +358,8 @@ func doRequest(resourceHref, actionName string, arguments []string) (*Response, 
 
 	return resp, js
 }
+
+//===== Find the self-href
 
 // findRel finds a relationship in a json links collections and returns the href, i.e. given
 // { links: [ { rel: "self", href: "/a/b/123" }, { rel: "parent", href: "/b/c/567" }
@@ -318,6 +423,35 @@ func getSelfHref() string {
 		fmt.Fprintf(os.Stderr, "Self href: %s\n", href)
 	}
 	return href
+}
+
+//===== Recording helpers
+
+func recorder(rr RequestRecording) {
+	// remove some headers for security purposes and others to reduce recording bulk
+	rr.ReqHeader.Del("Authorization")
+	rr.ReqHeader.Del("User-Agent")
+	rr.RespHeader.Del("Cache-Control")
+	rr.RespHeader.Del("Connection")
+	rr.RespHeader.Del("Set-Cookie")
+	rr.RespHeader.Del("Strict-Transport-Security")
+	rr.RespHeader.Del("X-Request-Uuid")
+	ReqResp.RR = rr
+	/*
+		js, err := json.MarshalIndent(&rr, "RR> ", "  ")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error recording request: %s", err.Error())
+		}
+		fmt.Println(string(js))
+	*/
+}
+
+func recordToFile(filename string, r MyRecording) {
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	kingpin.FatalIfError(err, "")
+	defer f.Close()
+	json, _ := json.MarshalIndent(r, "", "  ")
+	fmt.Fprintf(f, "\n%s\n", json)
 }
 
 /*

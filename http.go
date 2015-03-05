@@ -37,14 +37,25 @@ import (
 
 const requestTimeout = 300 * time.Second // overall timeout for HTTP requests to API
 
+// recording of a request and its response
+type RequestRecording struct {
+	Verb, Uri  string      // request http verb and full uri with query string
+	ReqHeader  http.Header // headers before std additions, such as user-agent
+	ReqBody    string      // not []byte so that json.Marshal doesn't produce base64
+	Status     int         // numerical response status
+	RespHeader http.Header // full response headers
+	RespBody   string      // not []byte so that json.Marshal doesn't produce base64
+}
+type Recorder func(RequestRecording)
+
 // Client is the handle onto a RightScle client interface.
 // Create a Client object by calling NewClient()
 type Client interface {
 	SetVersion(v string) // sets the RightApi version, either "1.5" or "1.6"
 	Do(method, uri string, args []string, contentType, content string) (*Response, error)
-	SetInsecure()           // makes the client accept broken ssl certs, used in tests
-	SetDebug(debug bool)    // causes each request and response to be logged
-	RecordHttp(w io.Writer) // starts recording requests/resp to put into tests
+	SetInsecure()          // makes the client accept broken ssl certs, used in tests
+	SetDebug(debug bool)   // causes each request and response to be logged
+	RecordHttp(r Recorder) // starts recording requests/resp to put into tests
 }
 
 type Response struct {
@@ -69,7 +80,7 @@ type client struct {
 	authToken   string      // OAuth authentication token used in every direct request
 	apiKey      string      // API key for direct connections
 	proxySecret string      // proxy secret for RL10 proxied connections
-	recorder    io.Writer   // where to record req/resp to put into tests
+	recorder    Recorder    // where to record req/resp to put into tests
 }
 
 // Set debugging
@@ -88,8 +99,8 @@ func (c *client) SetInsecure() {
 }
 
 // Add a recorder for HTTP requests, this is used to generate test fixtures
-func (c *client) RecordHttp(w io.Writer) {
-	c.recorder = w
+func (c *client) RecordHttp(r Recorder) {
+	c.recorder = r
 }
 
 // Given a URI such as /api/instances create a full URL
@@ -361,6 +372,7 @@ func (c *client) Do(method string, uri string, args []string, contentType, conte
 
 	try := 1
 	for {
+		fmt.Fprintf(os.Stderr, "HTTP.DO: %+v\n", req)
 		// perform the request
 		var res *http.Response
 		res, err = c.cl.Do(req)
@@ -373,6 +385,10 @@ func (c *client) Do(method string, uri string, args []string, contentType, conte
 		// if the request didn't happen, retry
 		// TODO: need to be careful with timeouts!
 		if err != nil {
+			try += 1
+			if try >= 3 {
+				return nil, err
+			}
 			continue
 		}
 
@@ -382,9 +398,14 @@ func (c *client) Do(method string, uri string, args []string, contentType, conte
 		if resp.statusCode < 500 || try >= 3 {
 			// success or our error, return what we got after recording
 			if c.recorder != nil {
-				respBody, _ := readBody(res)
-				fmt.Fprintf(c.recorder, "{ \"%s\", \"%s\", %q, %q }\n",
-					method, uri, dump, respBody)
+				c.recorder(RequestRecording{
+					Verb: method, Uri: uri,
+					ReqHeader:  req.Header,
+					ReqBody:    content,
+					Status:     resp.statusCode,
+					RespHeader: resp.header,
+					RespBody:   string(resp.raw),
+				})
 			}
 
 			return resp, err

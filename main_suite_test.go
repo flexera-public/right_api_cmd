@@ -11,13 +11,6 @@ import (
 )
 
 func TestRLCmd(t *testing.T) {
-
-	// load the testcases
-	//err := services.Load("./aws-metadata", "./rest-metadata", serviceFiles)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-
 	format.UseStringerRepresentation = true
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "RL-API")

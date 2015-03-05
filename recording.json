@@ -1,0 +1,38 @@
+{
+  "CmdArgs": [
+    "--key",
+    "test-key",
+    "--x1",
+    ".cloud_type",
+    "show",
+    "/api/clouds/6"
+  ],
+  "ExitCode": 0,
+  "Stdout": "\"amazon\"",
+  "RR": {
+    "Verb": "GET",
+    "Uri": "https://us-3.rightscale.com/api/clouds/6",
+    "ReqHeader": {
+      "X-Api-Version": [
+        "1.5"
+      ]
+    },
+    "ReqBody": "",
+    "Status": 200,
+    "RespHeader": {
+      "Content-Length": [
+        "1015"
+      ],
+      "Content-Type": [
+        "application/vnd.rightscale.cloud+json;charset=utf-8"
+      ],
+      "Date": [
+        "Sat, 21 Feb 2015 00:21:21 GMT"
+      ],
+      "Status": [
+        "200 OK"
+      ]
+    },
+    "RespBody": "{\"display_name\":\"AWS US-Oregon\",\"links\":[{\"rel\":\"self\",\"href\":\"/api/clouds/6\"},{\"rel\":\"datacenters\",\"href\":\"/api/clouds/6/datacenters\"},{\"rel\":\"instance_types\",\"href\":\"/api/clouds/6/instance_types\"},{\"rel\":\"security_groups\",\"href\":\"/api/clouds/6/security_groups\"},{\"rel\":\"instances\",\"href\":\"/api/clouds/6/instances\"},{\"rel\":\"ssh_keys\",\"href\":\"/api/clouds/6/ssh_keys\"},{\"rel\":\"images\",\"href\":\"/api/clouds/6/images\"},{\"rel\":\"ip_addresses\",\"href\":\"/api/clouds/6/ip_addresses\"},{\"rel\":\"ip_address_bindings\",\"href\":\"/api/clouds/6/ip_address_bindings\"},{\"rel\":\"volume_attachments\",\"href\":\"/api/clouds/6/volume_attachments\"},{\"rel\":\"recurring_volume_attachments\",\"href\":\"/api/clouds/6/recurring_volume_attachments\"},{\"rel\":\"volume_snapshots\",\"href\":\"/api/clouds/6/volume_snapshots\"},{\"rel\":\"volume_types\",\"href\":\"/api/clouds/6/volume_types\"},{\"rel\":\"volumes\",\"href\":\"/api/clouds/6/volumes\"},{\"rel\":\"subnets\",\"href\":\"/api/clouds/6/subnets\"}],\"cloud_type\":\"amazon\",\"name\":\"EC2 us-west-2\",\"description\":\"AWS US-Oregon Cloud\"}"
+  }
+}
