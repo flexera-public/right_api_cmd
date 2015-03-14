@@ -101,12 +101,18 @@ var rightscale = func() Client {
 	var err error
 	if *rl10Flag {
 		// we're gonna use the RL10 proxy
+		if *debugFlag {
+			fmt.Fprintf(os.Stderr, "Using RightLink10 proxy\n")
+		}
 		rsClientInternal, err = NewProxyClient(*host, *rsKey, *debugFlag)
 		if err != nil {
 			kingpin.FatalIfError(err, "")
 		}
 	} else {
 		// we're gonna go direct to RightScale
+		if *debugFlag {
+			fmt.Fprintf(os.Stderr, "Going direct to RightScale\n")
+		}
 		h := *host
 		if h == "" {
 			h = os.Getenv("RS_api_hostname")
