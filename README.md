@@ -34,7 +34,7 @@ Flags:
 - `--host=<hostname:port>` is the hostname (and optional :port suffix) for the RightScale API endpoint
 - `--key=<key>` is the RightScale API key to authenticate
 - `--rl10` tells rs-api to proxy through RightLink10 and locate the RL10 port and secret in
-  `/var/run/rll-secret`
+  `/var/run/rightlink/secret`
 - `--pretty` pretty-prints the result
 - `--x1=<JSONselect>` extracts the single value using the [JSON:select](http://jsonselect.org)
    expression
@@ -52,7 +52,7 @@ If `--host` or `--key` are not specified, and `--rl10` is also not specified (i.
 asked to contact the RS platform directly) either of these values can be read from the
 environment variables `RS_api_hostname` respectively `RS_api_key`.
 However, if `--rl10` is specified the environment variables are not consulted but
-`/var/run/rll-secret` is.
+`/var/run/rightlink/secret` is.
 
 Exit codes:
 - 0 = all OK

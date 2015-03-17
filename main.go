@@ -73,11 +73,11 @@ func init() { kingpin.Version(VV) }
 
 // file with info to access Rightlink10 proxy to RightApi, this could be more Go idiomatic, but
 // let's wait whether more linux vs windows differences actually accumulate
-var rllSecretPath = "/var/run/rll-secret"
+var rllSecretPath = "/var/run/rightlink/secret"
 
 func init() {
 	if runtime.GOOS == "windows" {
-		rllSecretPath = "C:\\some\\path\\rll-secret"
+		rllSecretPath = "C:\\some\\path\\rightlink\\secret"
 	}
 }
 
