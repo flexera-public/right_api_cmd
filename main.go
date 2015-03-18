@@ -77,7 +77,7 @@ var rllSecretPath = "/var/run/rightlink/secret"
 
 func init() {
 	if runtime.GOOS == "windows" {
-		rllSecretPath = "C:\\some\\path\\rightlink\\secret"
+		rllSecretPath = "C:\\ProgramData\\RightScale\\RightLink\\secret"
 	}
 }
 
