@@ -162,6 +162,10 @@ func captureCmdArgs(args []string) []string {
 			skipArg = true
 			continue
 		}
+		if a == "--host" { // don't record the host flag & hostname
+			skipArg = true
+			continue
+		}
 		rec = append(rec, a)
 		if a == "--key" { // record a fake key, not the real one
 			rec = append(rec, "test-key")
@@ -236,8 +240,8 @@ func main() {
 	}
 
 	fmt.Fprintf(os.Stderr, stderr)
-	fmt.Printf(stdout)
-	os.Exit(exit)
+	fmt.Fprintf(osStdout, stdout)
+	osExit(exit)
 }
 
 func doOutput(xFlags int, selectOne bool, selectExpr string, resp *Response, js []byte) (string, string, int) {
@@ -270,7 +274,7 @@ func doOutput(xFlags int, selectOne bool, selectExpr string, resp *Response, js 
 
 	if selectOne {
 		if len(values) == 0 {
-			return "", fmt.Sprintf("No value selected, result was: <<%s>>", js), 1
+			return "", fmt.Sprintf("No value could be selected, result was: <<%s>>", js), 1
 		} else if len(values) > 1 {
 			return "", fmt.Sprintf("Multiple values selected, result was: <<%s>>", js), 1
 		}
@@ -443,13 +447,6 @@ func recorder(rr RequestRecording) {
 	rr.RespHeader.Del("Strict-Transport-Security")
 	rr.RespHeader.Del("X-Request-Uuid")
 	ReqResp.RR = rr
-	/*
-		js, err := json.MarshalIndent(&rr, "RR> ", "  ")
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error recording request: %s", err.Error())
-		}
-		fmt.Println(string(js))
-	*/
 }
 
 func recordToFile(filename string, r MyRecording) {

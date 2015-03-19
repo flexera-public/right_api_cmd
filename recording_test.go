@@ -8,10 +8,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	//"io/ioutil"
+	"io"
 	"net/http"
-	//"net/http/httptest"
 	"os"
+	"regexp"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -34,25 +34,12 @@ var _ = Describe("Recorded request", func() {
 		// Read a test case, which is a json struct
 		var testCase MyRecording
 		err := json.NewDecoder(f).Decode(&testCase)
-		if err != nil {
+		if err == io.EOF {
+			break
+		} else if err != nil {
 			fmt.Fprintf(os.Stderr, "Json decode: %s\n", err.Error())
 			break
 		}
-
-		/*
-			handler := func(w http.ResponseWriter, req *http.Request) {
-				reqBody, _ := ioutil.ReadAll(req.Body)
-				Ω(req.Method).Should(Equal(testCase.RR.Verb))
-				Ω(req.URL).Should(Equal(testCase.RR.Uri))
-				Ω(reqBody).Should(Equal(testCase.RR.ReqBody))
-				for k, _ := range testCase.RR.ReqHeader {
-					Ω(req.Header.Get(k)).Should(Equal(testCase.RR.ReqHeader.Get(k)))
-				}
-
-				w.WriteHeader(testCase.RR.Status)
-				w.Write([]byte(testCase.RR.RespBody))
-			}
-		*/
 
 		// Perform the test by running main() with the command line args set
 		It(strings.Join(testCase.CmdArgs, " "), func() {
@@ -61,21 +48,23 @@ var _ = Describe("Recorded request", func() {
 			defer server.Close()
 
 			// construct list of verifiers
-			verifiers := []http.HandlerFunc{
-				ghttp.VerifyRequest(testCase.RR.Verb, testCase.RR.Uri),
-				ghttp.VerifyRequest("HELLO", testCase.RR.Uri),
+			uri := regexp.MustCompile(`https?://[^/]+`).
+				ReplaceAllString(testCase.RR.Uri, "")
+			handlers := []http.HandlerFunc{
+				ghttp.VerifyRequest(testCase.RR.Verb, uri),
 			}
 			if len(testCase.RR.ReqBody) > 0 {
-				verifiers = append(verifiers,
+				handlers = append(handlers,
 					ghttp.VerifyJSON(testCase.RR.ReqBody))
 			}
 			for k, _ := range testCase.RR.ReqHeader {
-				verifiers = append(verifiers,
+				handlers = append(handlers,
 					ghttp.VerifyHeaderKV(k, testCase.RR.ReqHeader.Get(k)))
 			}
-			verifiers = append(verifiers,
-				ghttp.RespondWith(testCase.RR.Status, testCase.RR.RespBody))
-			server.AppendHandlers(verifiers...)
+			handlers = append(handlers,
+				ghttp.RespondWith(testCase.RR.Status, testCase.RR.RespBody,
+					http.Header{"Content-Type": []string{"application/json"}}))
+			server.AppendHandlers(ghttp.CombineHandlers(handlers...))
 
 			os.Args = append([]string{
 				"rs-api", "--rl10",
@@ -95,9 +84,10 @@ var _ = Describe("Recorded request", func() {
 			main()
 
 			// Verify that stdout and the exit code are correct
-			fmt.Fprintf(os.Stderr, "Exit %d %d\n", exitCode, testCase.ExitCode)
+			//fmt.Fprintf(os.Stderr, "Exit %d %d\n", exitCode, testCase.ExitCode)
 			Ω(exitCode).Should(Equal(testCase.ExitCode))
-			fmt.Fprintf(os.Stderr, "stdout <<%s>> <<%s>>\n", stdoutBuf.String(), testCase.Stdout)
+			//fmt.Fprintf(os.Stderr, "stdout got <<%s>> expected <<%s>>\n",
+			//	stdoutBuf.String(), testCase.Stdout)
 			Ω(stdoutBuf.String()).Should(Equal(testCase.Stdout))
 		})
 	}
