@@ -17,7 +17,15 @@ import (
 	"gopkg.in/alecthomas/kingpin.v1"
 )
 
-var (
+// Initializing the command line args and flags is a bit convoluted because we need to reinit
+// everything each time we run a recorded test
+
+var app *kingpin.Application
+var host, rsKey, x1, xm, xj, xh, recordFile, actionName, resourceHref *string
+var debugFlag, prettyFlag, rl10Flag *bool
+var arguments *[]string
+
+func initKingpin() {
 	app = kingpin.New("rs-api", `RightScale/RightLink10 API 1.5/1.6 Command Line Client
 
 rs-api issues API requests to the RightScale platform or to RightLink10 either directly or via
@@ -42,9 +50,9 @@ details.
 Non-zero exit codes indicate a problem
 `)
 
-	debugFlag  = app.Flag("debug", "Enable verbose request and response logging").Bool()
-	host       = app.Flag("host", "host:port for API endpoint or RL10 proxy").String()
-	rsKey      = app.Flag("key", "RightScale API key or RL10 proxy secret").String()
+	debugFlag = app.Flag("debug", "Enable verbose request and response logging").Bool()
+	host = app.Flag("host", "host:port for API endpoint or RL10 proxy").String()
+	rsKey = app.Flag("key", "RightScale API key or RL10 proxy secret").String()
 	prettyFlag = app.Flag("pretty", "pretty-print json output").Bool()
 	//fetchFlag   = app.Flag("fetch", "auto-fetch resource returned in Location header").Bool()
 	//noRedirFlag = app.Flag("noRedirect", "do not follow any redirects").Bool()
@@ -52,7 +60,7 @@ Non-zero exit codes indicate a problem
 		"unless -host flag is provided").Bool()
 
 	actionName = app.Arg("action", "name of action, ex: index, create, delete, launch, ...").
-			Required().String()
+		Required().String()
 	resourceHref = app.Arg("resource-href", "href of resource to operate on or shortcut, "+
 		"ex: /api/instances/1234, servers, server_templates, self").Required().String()
 	arguments = app.Arg("parameters", "arguments to the API call as described in API docs, "+
@@ -64,10 +72,10 @@ Non-zero exit codes indicate a problem
 		"print one value per line").String()
 	xj = app.Flag("xj", "extract data from response using json:select, "+
 		"print values as json array on one line").String()
-	xh         = app.Flag("xh", "extract value of named header and print on one line").String()
+	xh = app.Flag("xh", "extract value of named header and print on one line").String()
 	recordFile = app.Flag("record", "for test generation purposes, specifies a file to record "+
 		"all requests").String()
-)
+}
 
 func init() { kingpin.Version(VV) }
 
@@ -176,10 +184,15 @@ func captureCmdArgs(args []string) []string {
 }
 
 func main() {
+	//for i, a := range os.Args {
+	//	fmt.Fprintf(os.Stderr, "arg[%d]=%s\n", i, a)
+	//}
+
 	// record the command line before we mess it up
 	ReqResp.CmdArgs = captureCmdArgs(os.Args[1:])
 
 	// hand the command line to kingpin for real parsing
+	initKingpin()
 	_ = kingpin.MustParse(app.Parse(os.Args[1:]))
 
 	// validate resource href

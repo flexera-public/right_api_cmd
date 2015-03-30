@@ -20,7 +20,7 @@ import (
 )
 
 // Iterate through all recorded test cases and play them back
-var _ = Describe("Recorded request", func() {
+var _ = Describe("Testing recorded requests", func() {
 
 	// Open the recording file
 	f, err := os.Open("recording.json")
@@ -28,12 +28,13 @@ var _ = Describe("Recorded request", func() {
 		fmt.Fprintf(os.Stdout, "Cannot open recording: %s\n", err.Error())
 		os.Exit(1)
 	}
+	decoder := json.NewDecoder(f)
 
 	// Iterate through test cases
 	for {
 		// Read a test case, which is a json struct
 		var testCase MyRecording
-		err := json.NewDecoder(f).Decode(&testCase)
+		err := decoder.Decode(&testCase)
 		if err == io.EOF {
 			break
 		} else if err != nil {
