@@ -248,7 +248,7 @@ func main() {
 	if *recordFile != "" {
 		ReqResp.Stdout = stdout
 		ReqResp.ExitCode = exit
-		fmt.Fprintf(os.Stderr, "REC:\n%+v\n\n", ReqResp)
+		//fmt.Fprintf(os.Stderr, "REC:\n%+v\n\n", ReqResp)
 		recordToFile(*recordFile, ReqResp)
 	}
 
@@ -287,9 +287,11 @@ func doOutput(xFlags int, selectOne bool, selectExpr string, resp *Response, js 
 
 	if selectOne {
 		if len(values) == 0 {
-			return "", fmt.Sprintf("No value could be selected, result was: <<%s>>", js), 1
+			return "", fmt.Sprintf("No value could be selected"), 1
+			//return "", fmt.Sprintf("No value could be selected, result was: <<%s>>", js), 1
 		} else if len(values) > 1 {
-			return "", fmt.Sprintf("Multiple values selected, result was: <<%s>>", js), 1
+			return "", fmt.Sprintf("Multiple values selected"), 1
+			//return "", fmt.Sprintf("Multiple values selected, result was: <<%s>>", js), 1
 		}
 	}
 	if *xj != "" {
@@ -376,8 +378,11 @@ func doRequest(resourceHref, actionName string, arguments []string) (*Response, 
 	kingpin.FatalIfError(err, "")
 
 	// produce JSON
-	js, err := json.Marshal(resp.data)
-	kingpin.FatalIfError(err, "")
+	js := []byte("")
+	if resp.data != nil {
+		js, err = json.Marshal(resp.data)
+		kingpin.FatalIfError(err, "")
+	}
 
 	return resp, js
 }
