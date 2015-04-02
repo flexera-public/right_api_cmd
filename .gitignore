@@ -20,6 +20,9 @@ _cgo_export.*
 
 _testmain.go
 
+# Use godep restore, don't check any dependencies in
+Godeps/_workspace
+
 *.test
 
 # vim

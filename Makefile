@@ -32,8 +32,9 @@
 NAME=rs-api
 BUCKET=rightscale-binaries
 ACL=public-read
+# dependencies that are not in Godep because they're used by the build&test process
 DEPEND=golang.org/x/tools/cmd/cover github.com/onsi/ginkgo/ginkgo \
-			 github.com/rlmcpherson/s3gof3r/gof3r github.com/coddingtonbear/go-jsonselect
+			 github.com/rlmcpherson/s3gof3r/gof3r
 
 #=== below this line ideally remains unchanged, add new targets at the end  ===
 
@@ -100,6 +101,7 @@ version:
 # there, like your laptop.
 depend:
 	go get $(DEPEND)
+	godep restore
 
 clean:
 	rm -rf build _aws-sdk
