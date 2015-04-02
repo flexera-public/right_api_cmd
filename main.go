@@ -303,7 +303,6 @@ func doOutput(xFlags int, selectOne bool, selectExpr string, resp *Response, js 
 			if err != nil {
 				return "", fmt.Sprintf("Error printing selected value: %s",
 					err.Error()), 1
-				return string(js), "", 0
 			}
 			return string(js), "", 0
 		}
