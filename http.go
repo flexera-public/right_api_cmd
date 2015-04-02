@@ -15,7 +15,7 @@ package main
 // - extracting fields from the response
 
 // The client has two ways to authenticate. The first is to read the RightLink10 proxy
-// secret file in /var/run/rll-secret and then use the proxy built into RL10. The second is
+// secret file in /var/run/rightlink/secret and then use the proxy built into RL10. The second is
 // to perform a full authentication with the RS platform. The former is faster (no auth request
 // required but only provides access to API calls that an "instance role" is allowed to perform.
 
