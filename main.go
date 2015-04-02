@@ -337,7 +337,7 @@ var reArgument = regexp.MustCompile(`^([a-zA-Z0-9_\[\]]+)=(.*)`)
 // crud actions and their http verb
 var crudActions = map[string]string{
 	"index": "GET", "show": "GET", "list": "GET",
-	"update": "POST", "create": "POST", "delete": "DELETE",
+	"update": "POST", "create": "POST", "destroy": "DELETE",
 }
 
 // exceptions for custom actions with the URI suffic and http verb

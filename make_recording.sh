@@ -41,7 +41,7 @@ href=`./rs-api ${ARGS[@]} --xh location create deployments \
 	'deployment[name]=rsc-test' \
 	'deployment[description]=expendable deployment used to test rsc'`
 declare -a "href=($href)"
-./rs-api ${ARGS[@]} delete $href
+./rs-api ${ARGS[@]} destroy $href
 
 # find existing deployment and delete it
 deployment=`./rs-api ${ARGS[@]} \
@@ -50,7 +50,7 @@ deployment=`./rs-api ${ARGS[@]} \
 	'filter[]=name==rsc-test'`
 echo "deployment: $deployment"
 if [[ -n "$deployment" ]]; then
-	./rs-api ${ARGS[@]} delete $deployment
+	./rs-api ${ARGS[@]} destroy $deployment
 fi
 
 # create a deployment with too few params -> error
@@ -114,7 +114,7 @@ echo st_href: $st_href
 
 # terminating instance
 ./rs-api ${ARGS[@]} terminate $instance_href
-./rs-api ${ARGS[@]} delete $deployment_href
+./rs-api ${ARGS[@]} destroy $deployment_href
 
 
 

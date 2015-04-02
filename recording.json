@@ -26,7 +26,7 @@
         "application/vnd.rightscale.cloud+json;type=collection;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:54:33 GMT"
+        "Thu, 02 Apr 2015 22:39:50 GMT"
       ],
       "Status": [
         "200 OK"
@@ -63,7 +63,7 @@
         "application/vnd.rightscale.cloud+json;type=collection;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:54:35 GMT"
+        "Thu, 02 Apr 2015 22:39:52 GMT"
       ],
       "Status": [
         "200 OK"
@@ -100,7 +100,7 @@
         "application/vnd.rightscale.cloud+json;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:54:36 GMT"
+        "Thu, 02 Apr 2015 22:39:53 GMT"
       ],
       "Status": [
         "200 OK"
@@ -139,7 +139,7 @@
         "application/vnd.rightscale.cloud+json;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:54:38 GMT"
+        "Thu, 02 Apr 2015 22:39:54 GMT"
       ],
       "Status": [
         "200 OK"
@@ -178,7 +178,7 @@
         "application/vnd.rightscale.cloud+json;type=collection;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:54:40 GMT"
+        "Thu, 02 Apr 2015 22:39:56 GMT"
       ],
       "Status": [
         "200 OK"
@@ -217,7 +217,7 @@
         "application/vnd.rightscale.cloud+json;type=collection;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:54:42 GMT"
+        "Thu, 02 Apr 2015 22:39:58 GMT"
       ],
       "Status": [
         "200 OK"
@@ -256,7 +256,7 @@
         "application/vnd.rightscale.cloud+json;type=collection;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:54:45 GMT"
+        "Thu, 02 Apr 2015 22:40:00 GMT"
       ],
       "Status": [
         "200 OK"
@@ -295,7 +295,7 @@
         "application/vnd.rightscale.cloud+json;type=collection;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:54:46 GMT"
+        "Thu, 02 Apr 2015 22:40:02 GMT"
       ],
       "Status": [
         "200 OK"
@@ -334,7 +334,7 @@
         "application/vnd.rightscale.cloud+json;type=collection;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:54:48 GMT"
+        "Thu, 02 Apr 2015 22:40:04 GMT"
       ],
       "Status": [
         "200 OK"
@@ -373,7 +373,7 @@
         "application/vnd.rightscale.instance_type+json;type=collection;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:54:50 GMT"
+        "Thu, 02 Apr 2015 22:40:06 GMT"
       ],
       "Status": [
         "200 OK"
@@ -413,7 +413,7 @@
         "application/vnd.rightscale.volume_snapshot+json;type=collection;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:54:52 GMT"
+        "Thu, 02 Apr 2015 22:40:08 GMT"
       ],
       "Status": [
         "200 OK"
@@ -453,7 +453,7 @@
         "application/vnd.rightscale.volume_snapshot+json;type=collection;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:54:53 GMT"
+        "Thu, 02 Apr 2015 22:40:10 GMT"
       ],
       "Status": [
         "200 OK"
@@ -493,7 +493,7 @@
         "application/vnd.rightscale.volume_snapshot+json;type=collection;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:54:55 GMT"
+        "Thu, 02 Apr 2015 22:40:12 GMT"
       ],
       "Status": [
         "200 OK"
@@ -532,7 +532,7 @@
         "application/vnd.rightscale.cloud+json;type=collection;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:54:56 GMT"
+        "Thu, 02 Apr 2015 22:40:14 GMT"
       ],
       "Status": [
         "200 OK"
@@ -571,7 +571,7 @@
         "application/vnd.rightscale.cloud+json;type=collection;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:54:58 GMT"
+        "Thu, 02 Apr 2015 22:40:16 GMT"
       ],
       "Status": [
         "200 OK"
@@ -610,7 +610,7 @@
         "application/vnd.rightscale.deployment+json;type=collection;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:55:00 GMT"
+        "Thu, 02 Apr 2015 22:40:18 GMT"
       ],
       "Status": [
         "200 OK"
@@ -632,7 +632,7 @@
     "deployment[description]=expendable deployment used to test rsc"
   ],
   "ExitCode": 0,
-  "Stdout": "/api/deployments/501075003",
+  "Stdout": "/api/deployments/501198003",
   "RR": {
     "Verb": "POST",
     "Uri": "https://us-3.rightscale.com/api/deployments?deployment[name]=rsc-test\u0026deployment[description]=expendable+deployment+used+to+test+rsc",
@@ -648,10 +648,10 @@
         "text/html; charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:55:05 GMT"
+        "Thu, 02 Apr 2015 22:40:23 GMT"
       ],
       "Location": [
-        "/api/deployments/501075003"
+        "/api/deployments/501198003"
       ],
       "Status": [
         "201 Created"
@@ -665,14 +665,14 @@
   "CmdArgs": [
     "--key",
     "test-key",
-    "delete",
-    "/api/deployments/501075003"
+    "destroy",
+    "/api/deployments/501198003"
   ],
   "ExitCode": 0,
   "Stdout": "",
   "RR": {
     "Verb": "DELETE",
-    "Uri": "https://us-3.rightscale.com/api/deployments/501075003",
+    "Uri": "https://us-3.rightscale.com/api/deployments/501198003",
     "ReqHeader": {
       "X-Api-Version": [
         "1.5"
@@ -682,7 +682,7 @@
     "Status": 204,
     "RespHeader": {
       "Date": [
-        "Thu, 02 Apr 2015 06:55:06 GMT"
+        "Thu, 02 Apr 2015 22:40:24 GMT"
       ],
       "Status": [
         "204 No Content"
@@ -722,7 +722,7 @@
         "application/vnd.rightscale.deployment+json;type=collection;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:55:08 GMT"
+        "Thu, 02 Apr 2015 22:40:25 GMT"
       ],
       "Status": [
         "200 OK"
@@ -743,7 +743,7 @@
     "deployment[name]=rsc-test"
   ],
   "ExitCode": 0,
-  "Stdout": "/api/deployments/501076003",
+  "Stdout": "/api/deployments/501199003",
   "RR": {
     "Verb": "POST",
     "Uri": "https://us-3.rightscale.com/api/deployments?deployment[name]=rsc-test",
@@ -759,10 +759,10 @@
         "text/html; charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:55:11 GMT"
+        "Thu, 02 Apr 2015 22:40:28 GMT"
       ],
       "Location": [
-        "/api/deployments/501076003"
+        "/api/deployments/501199003"
       ],
       "Status": [
         "201 Created"
@@ -801,7 +801,7 @@
         "application/vnd.rightscale.cloud+json;type=collection;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:55:13 GMT"
+        "Thu, 02 Apr 2015 22:40:30 GMT"
       ],
       "Status": [
         "200 OK"
@@ -841,7 +841,7 @@
         "application/vnd.rightscale.image+json;type=collection;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:55:15 GMT"
+        "Thu, 02 Apr 2015 22:40:33 GMT"
       ],
       "Status": [
         "200 OK"
@@ -881,7 +881,7 @@
         "application/vnd.rightscale.instance_type+json;type=collection;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:55:16 GMT"
+        "Thu, 02 Apr 2015 22:40:35 GMT"
       ],
       "Status": [
         "200 OK"
@@ -904,7 +904,7 @@
     "instance[name]=rsc-test"
   ],
   "ExitCode": 0,
-  "Stdout": "/api/clouds/1/instances/2ABI92BVRUSJ7",
+  "Stdout": "/api/clouds/1/instances/7N5SKECNTH2D3",
   "RR": {
     "Verb": "POST",
     "Uri": "https://us-3.rightscale.com/api/clouds/1/instances?instance[image_href]=%2Fapi%2Fclouds%2F1%2Fimages%2FBHGN4GPQ0CK1V\u0026instance[instance_type_href]=%2Fapi%2Fclouds%2F1%2Finstance_types%2FAUOLVHB6FOOB3\u0026instance[name]=rsc-test",
@@ -920,10 +920,10 @@
         "text/html; charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:55:19 GMT"
+        "Thu, 02 Apr 2015 22:40:38 GMT"
       ],
       "Location": [
-        "/api/clouds/1/instances/2ABI92BVRUSJ7"
+        "/api/clouds/1/instances/7N5SKECNTH2D3"
       ],
       "Status": [
         "201 Created"
@@ -940,13 +940,13 @@
     "--xm",
     ".state",
     "show",
-    "/api/clouds/1/instances/2ABI92BVRUSJ7"
+    "/api/clouds/1/instances/7N5SKECNTH2D3"
   ],
   "ExitCode": 0,
   "Stdout": "\"pending\"\n",
   "RR": {
     "Verb": "GET",
-    "Uri": "https://us-3.rightscale.com/api/clouds/1/instances/2ABI92BVRUSJ7",
+    "Uri": "https://us-3.rightscale.com/api/clouds/1/instances/7N5SKECNTH2D3",
     "ReqHeader": {
       "X-Api-Version": [
         "1.5"
@@ -962,13 +962,13 @@
         "application/vnd.rightscale.instance+json;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:55:21 GMT"
+        "Thu, 02 Apr 2015 22:40:39 GMT"
       ],
       "Status": [
         "200 OK"
       ]
     },
-    "RespBody": "{\"cloud_specific_attributes\":{\"ebs_optimized\":false},\"public_ip_addresses\":[],\"links\":[{\"rel\":\"self\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7\"},{\"rel\":\"cloud\",\"href\":\"/api/clouds/1\"},{\"rel\":\"volume_attachments\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/volume_attachments\"},{\"rel\":\"inputs\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/inputs\"},{\"rel\":\"monitoring_metrics\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/monitoring_metrics\"},{\"rel\":\"alerts\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/alerts\"}],\"pricing_type\":\"fixed\",\"private_ip_addresses\":[],\"created_at\":\"2015/04/02 06:55:19 +0000\",\"associate_public_ip_address\":true,\"resource_uid\":\"i-636af9b4\",\"actions\":[{\"rel\":\"terminate\"},{\"rel\":\"run_executable\"},{\"rel\":\"lock\"},{\"rel\":\"unlock\"}],\"state\":\"pending\",\"ip_forwarding_enabled\":false,\"updated_at\":\"2015/04/02 06:55:19 +0000\",\"name\":\"rsc-test\",\"locked\":false}"
+    "RespBody": "{\"cloud_specific_attributes\":{\"ebs_optimized\":false},\"public_ip_addresses\":[],\"links\":[{\"rel\":\"self\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3\"},{\"rel\":\"cloud\",\"href\":\"/api/clouds/1\"},{\"rel\":\"volume_attachments\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/volume_attachments\"},{\"rel\":\"inputs\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/inputs\"},{\"rel\":\"monitoring_metrics\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/monitoring_metrics\"},{\"rel\":\"alerts\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/alerts\"}],\"pricing_type\":\"fixed\",\"private_ip_addresses\":[],\"created_at\":\"2015/04/02 22:40:37 +0000\",\"associate_public_ip_address\":true,\"resource_uid\":\"i-faa52d06\",\"actions\":[{\"rel\":\"terminate\"},{\"rel\":\"run_executable\"},{\"rel\":\"lock\"},{\"rel\":\"unlock\"}],\"state\":\"pending\",\"ip_forwarding_enabled\":false,\"updated_at\":\"2015/04/02 22:40:38 +0000\",\"name\":\"rsc-test\",\"locked\":false}"
   }
 }
 
@@ -977,13 +977,13 @@
     "--key",
     "test-key",
     "show",
-    "/api/clouds/1/instances/2ABI92BVRUSJ7"
+    "/api/clouds/1/instances/7N5SKECNTH2D3"
   ],
   "ExitCode": 0,
-  "Stdout": "{\"actions\":[{\"rel\":\"terminate\"},{\"rel\":\"run_executable\"},{\"rel\":\"lock\"},{\"rel\":\"unlock\"}],\"associate_public_ip_address\":true,\"cloud_specific_attributes\":{\"ebs_optimized\":false},\"created_at\":\"2015/04/02 06:55:19 +0000\",\"ip_forwarding_enabled\":false,\"links\":[{\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7\",\"rel\":\"self\"},{\"href\":\"/api/clouds/1\",\"rel\":\"cloud\"},{\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/volume_attachments\",\"rel\":\"volume_attachments\"},{\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/inputs\",\"rel\":\"inputs\"},{\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/monitoring_metrics\",\"rel\":\"monitoring_metrics\"},{\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/alerts\",\"rel\":\"alerts\"}],\"locked\":false,\"name\":\"rsc-test\",\"pricing_type\":\"fixed\",\"private_ip_addresses\":[],\"public_ip_addresses\":[],\"resource_uid\":\"i-636af9b4\",\"state\":\"pending\",\"updated_at\":\"2015/04/02 06:55:19 +0000\"}",
+  "Stdout": "{\"actions\":[{\"rel\":\"terminate\"},{\"rel\":\"run_executable\"},{\"rel\":\"lock\"},{\"rel\":\"unlock\"}],\"associate_public_ip_address\":true,\"cloud_specific_attributes\":{\"ebs_optimized\":false},\"created_at\":\"2015/04/02 22:40:37 +0000\",\"ip_forwarding_enabled\":false,\"links\":[{\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3\",\"rel\":\"self\"},{\"href\":\"/api/clouds/1\",\"rel\":\"cloud\"},{\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/volume_attachments\",\"rel\":\"volume_attachments\"},{\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/inputs\",\"rel\":\"inputs\"},{\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/monitoring_metrics\",\"rel\":\"monitoring_metrics\"},{\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/alerts\",\"rel\":\"alerts\"}],\"locked\":false,\"name\":\"rsc-test\",\"pricing_type\":\"fixed\",\"private_ip_addresses\":[],\"public_ip_addresses\":[],\"resource_uid\":\"i-faa52d06\",\"state\":\"pending\",\"updated_at\":\"2015/04/02 22:40:38 +0000\"}",
   "RR": {
     "Verb": "GET",
-    "Uri": "https://us-3.rightscale.com/api/clouds/1/instances/2ABI92BVRUSJ7",
+    "Uri": "https://us-3.rightscale.com/api/clouds/1/instances/7N5SKECNTH2D3",
     "ReqHeader": {
       "X-Api-Version": [
         "1.5"
@@ -999,13 +999,13 @@
         "application/vnd.rightscale.instance+json;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:55:23 GMT"
+        "Thu, 02 Apr 2015 22:40:41 GMT"
       ],
       "Status": [
         "200 OK"
       ]
     },
-    "RespBody": "{\"cloud_specific_attributes\":{\"ebs_optimized\":false},\"public_ip_addresses\":[],\"links\":[{\"rel\":\"self\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7\"},{\"rel\":\"cloud\",\"href\":\"/api/clouds/1\"},{\"rel\":\"volume_attachments\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/volume_attachments\"},{\"rel\":\"inputs\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/inputs\"},{\"rel\":\"monitoring_metrics\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/monitoring_metrics\"},{\"rel\":\"alerts\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/alerts\"}],\"pricing_type\":\"fixed\",\"private_ip_addresses\":[],\"created_at\":\"2015/04/02 06:55:19 +0000\",\"associate_public_ip_address\":true,\"resource_uid\":\"i-636af9b4\",\"actions\":[{\"rel\":\"terminate\"},{\"rel\":\"run_executable\"},{\"rel\":\"lock\"},{\"rel\":\"unlock\"}],\"state\":\"pending\",\"ip_forwarding_enabled\":false,\"updated_at\":\"2015/04/02 06:55:19 +0000\",\"name\":\"rsc-test\",\"locked\":false}"
+    "RespBody": "{\"cloud_specific_attributes\":{\"ebs_optimized\":false},\"public_ip_addresses\":[],\"links\":[{\"rel\":\"self\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3\"},{\"rel\":\"cloud\",\"href\":\"/api/clouds/1\"},{\"rel\":\"volume_attachments\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/volume_attachments\"},{\"rel\":\"inputs\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/inputs\"},{\"rel\":\"monitoring_metrics\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/monitoring_metrics\"},{\"rel\":\"alerts\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/alerts\"}],\"pricing_type\":\"fixed\",\"private_ip_addresses\":[],\"created_at\":\"2015/04/02 22:40:37 +0000\",\"associate_public_ip_address\":true,\"resource_uid\":\"i-faa52d06\",\"actions\":[{\"rel\":\"terminate\"},{\"rel\":\"run_executable\"},{\"rel\":\"lock\"},{\"rel\":\"unlock\"}],\"state\":\"pending\",\"ip_forwarding_enabled\":false,\"updated_at\":\"2015/04/02 22:40:38 +0000\",\"name\":\"rsc-test\",\"locked\":false}"
   }
 }
 
@@ -1016,13 +1016,13 @@
     "--x1",
     ".locked",
     "show",
-    "/api/clouds/1/instances/2ABI92BVRUSJ7"
+    "/api/clouds/1/instances/7N5SKECNTH2D3"
   ],
   "ExitCode": 0,
   "Stdout": "false",
   "RR": {
     "Verb": "GET",
-    "Uri": "https://us-3.rightscale.com/api/clouds/1/instances/2ABI92BVRUSJ7",
+    "Uri": "https://us-3.rightscale.com/api/clouds/1/instances/7N5SKECNTH2D3",
     "ReqHeader": {
       "X-Api-Version": [
         "1.5"
@@ -1038,13 +1038,13 @@
         "application/vnd.rightscale.instance+json;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:55:25 GMT"
+        "Thu, 02 Apr 2015 22:40:43 GMT"
       ],
       "Status": [
         "200 OK"
       ]
     },
-    "RespBody": "{\"cloud_specific_attributes\":{\"ebs_optimized\":false},\"public_ip_addresses\":[],\"links\":[{\"rel\":\"self\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7\"},{\"rel\":\"cloud\",\"href\":\"/api/clouds/1\"},{\"rel\":\"volume_attachments\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/volume_attachments\"},{\"rel\":\"inputs\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/inputs\"},{\"rel\":\"monitoring_metrics\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/monitoring_metrics\"},{\"rel\":\"alerts\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/alerts\"}],\"pricing_type\":\"fixed\",\"private_ip_addresses\":[],\"created_at\":\"2015/04/02 06:55:19 +0000\",\"associate_public_ip_address\":true,\"resource_uid\":\"i-636af9b4\",\"actions\":[{\"rel\":\"terminate\"},{\"rel\":\"run_executable\"},{\"rel\":\"lock\"},{\"rel\":\"unlock\"}],\"state\":\"pending\",\"ip_forwarding_enabled\":false,\"updated_at\":\"2015/04/02 06:55:19 +0000\",\"name\":\"rsc-test\",\"locked\":false}"
+    "RespBody": "{\"cloud_specific_attributes\":{\"ebs_optimized\":false},\"public_ip_addresses\":[],\"links\":[{\"rel\":\"self\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3\"},{\"rel\":\"cloud\",\"href\":\"/api/clouds/1\"},{\"rel\":\"volume_attachments\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/volume_attachments\"},{\"rel\":\"inputs\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/inputs\"},{\"rel\":\"monitoring_metrics\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/monitoring_metrics\"},{\"rel\":\"alerts\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/alerts\"}],\"pricing_type\":\"fixed\",\"private_ip_addresses\":[],\"created_at\":\"2015/04/02 22:40:37 +0000\",\"associate_public_ip_address\":true,\"resource_uid\":\"i-faa52d06\",\"actions\":[{\"rel\":\"terminate\"},{\"rel\":\"run_executable\"},{\"rel\":\"lock\"},{\"rel\":\"unlock\"}],\"state\":\"pending\",\"ip_forwarding_enabled\":false,\"updated_at\":\"2015/04/02 22:40:38 +0000\",\"name\":\"rsc-test\",\"locked\":false}"
   }
 }
 
@@ -1055,13 +1055,13 @@
     "--xm",
     ".locked",
     "show",
-    "/api/clouds/1/instances/2ABI92BVRUSJ7"
+    "/api/clouds/1/instances/7N5SKECNTH2D3"
   ],
   "ExitCode": 0,
   "Stdout": "false\n",
   "RR": {
     "Verb": "GET",
-    "Uri": "https://us-3.rightscale.com/api/clouds/1/instances/2ABI92BVRUSJ7",
+    "Uri": "https://us-3.rightscale.com/api/clouds/1/instances/7N5SKECNTH2D3",
     "ReqHeader": {
       "X-Api-Version": [
         "1.5"
@@ -1077,13 +1077,13 @@
         "application/vnd.rightscale.instance+json;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:55:27 GMT"
+        "Thu, 02 Apr 2015 22:40:45 GMT"
       ],
       "Status": [
         "200 OK"
       ]
     },
-    "RespBody": "{\"cloud_specific_attributes\":{\"ebs_optimized\":false},\"public_ip_addresses\":[],\"links\":[{\"rel\":\"self\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7\"},{\"rel\":\"cloud\",\"href\":\"/api/clouds/1\"},{\"rel\":\"volume_attachments\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/volume_attachments\"},{\"rel\":\"inputs\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/inputs\"},{\"rel\":\"monitoring_metrics\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/monitoring_metrics\"},{\"rel\":\"alerts\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/alerts\"}],\"pricing_type\":\"fixed\",\"private_ip_addresses\":[],\"created_at\":\"2015/04/02 06:55:19 +0000\",\"associate_public_ip_address\":true,\"resource_uid\":\"i-636af9b4\",\"actions\":[{\"rel\":\"terminate\"},{\"rel\":\"run_executable\"},{\"rel\":\"lock\"},{\"rel\":\"unlock\"}],\"state\":\"pending\",\"ip_forwarding_enabled\":false,\"updated_at\":\"2015/04/02 06:55:19 +0000\",\"name\":\"rsc-test\",\"locked\":false}"
+    "RespBody": "{\"cloud_specific_attributes\":{\"ebs_optimized\":false},\"public_ip_addresses\":[],\"links\":[{\"rel\":\"self\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3\"},{\"rel\":\"cloud\",\"href\":\"/api/clouds/1\"},{\"rel\":\"volume_attachments\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/volume_attachments\"},{\"rel\":\"inputs\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/inputs\"},{\"rel\":\"monitoring_metrics\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/monitoring_metrics\"},{\"rel\":\"alerts\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/alerts\"}],\"pricing_type\":\"fixed\",\"private_ip_addresses\":[],\"created_at\":\"2015/04/02 22:40:37 +0000\",\"associate_public_ip_address\":true,\"resource_uid\":\"i-faa52d06\",\"actions\":[{\"rel\":\"terminate\"},{\"rel\":\"run_executable\"},{\"rel\":\"lock\"},{\"rel\":\"unlock\"}],\"state\":\"pending\",\"ip_forwarding_enabled\":false,\"updated_at\":\"2015/04/02 22:40:38 +0000\",\"name\":\"rsc-test\",\"locked\":false}"
   }
 }
 
@@ -1094,13 +1094,13 @@
     "--xj",
     ".locked",
     "show",
-    "/api/clouds/1/instances/2ABI92BVRUSJ7"
+    "/api/clouds/1/instances/7N5SKECNTH2D3"
   ],
   "ExitCode": 0,
   "Stdout": "[false]",
   "RR": {
     "Verb": "GET",
-    "Uri": "https://us-3.rightscale.com/api/clouds/1/instances/2ABI92BVRUSJ7",
+    "Uri": "https://us-3.rightscale.com/api/clouds/1/instances/7N5SKECNTH2D3",
     "ReqHeader": {
       "X-Api-Version": [
         "1.5"
@@ -1116,13 +1116,13 @@
         "application/vnd.rightscale.instance+json;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:55:28 GMT"
+        "Thu, 02 Apr 2015 22:40:46 GMT"
       ],
       "Status": [
         "200 OK"
       ]
     },
-    "RespBody": "{\"cloud_specific_attributes\":{\"ebs_optimized\":false},\"public_ip_addresses\":[],\"links\":[{\"rel\":\"self\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7\"},{\"rel\":\"cloud\",\"href\":\"/api/clouds/1\"},{\"rel\":\"volume_attachments\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/volume_attachments\"},{\"rel\":\"inputs\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/inputs\"},{\"rel\":\"monitoring_metrics\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/monitoring_metrics\"},{\"rel\":\"alerts\",\"href\":\"/api/clouds/1/instances/2ABI92BVRUSJ7/alerts\"}],\"pricing_type\":\"fixed\",\"private_ip_addresses\":[],\"created_at\":\"2015/04/02 06:55:19 +0000\",\"associate_public_ip_address\":true,\"resource_uid\":\"i-636af9b4\",\"actions\":[{\"rel\":\"terminate\"},{\"rel\":\"run_executable\"},{\"rel\":\"lock\"},{\"rel\":\"unlock\"}],\"state\":\"pending\",\"ip_forwarding_enabled\":false,\"updated_at\":\"2015/04/02 06:55:19 +0000\",\"name\":\"rsc-test\",\"locked\":false}"
+    "RespBody": "{\"cloud_specific_attributes\":{\"ebs_optimized\":false},\"public_ip_addresses\":[],\"links\":[{\"rel\":\"self\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3\"},{\"rel\":\"cloud\",\"href\":\"/api/clouds/1\"},{\"rel\":\"volume_attachments\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/volume_attachments\"},{\"rel\":\"inputs\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/inputs\"},{\"rel\":\"monitoring_metrics\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/monitoring_metrics\"},{\"rel\":\"alerts\",\"href\":\"/api/clouds/1/instances/7N5SKECNTH2D3/alerts\"}],\"pricing_type\":\"fixed\",\"private_ip_addresses\":[],\"created_at\":\"2015/04/02 22:40:37 +0000\",\"associate_public_ip_address\":true,\"resource_uid\":\"i-faa52d06\",\"actions\":[{\"rel\":\"terminate\"},{\"rel\":\"run_executable\"},{\"rel\":\"lock\"},{\"rel\":\"unlock\"}],\"state\":\"pending\",\"ip_forwarding_enabled\":false,\"updated_at\":\"2015/04/02 22:40:38 +0000\",\"name\":\"rsc-test\",\"locked\":false}"
   }
 }
 
@@ -1157,7 +1157,7 @@
         "application/vnd.rightscale.server_template+json;type=collection;charset=utf-8"
       ],
       "Date": [
-        "Thu, 02 Apr 2015 06:55:29 GMT"
+        "Thu, 02 Apr 2015 22:40:48 GMT"
       ],
       "Status": [
         "200 OK"
@@ -1172,13 +1172,13 @@
     "--key",
     "test-key",
     "terminate",
-    "/api/clouds/1/instances/2ABI92BVRUSJ7"
+    "/api/clouds/1/instances/7N5SKECNTH2D3"
   ],
   "ExitCode": 0,
   "Stdout": "",
   "RR": {
     "Verb": "POST",
-    "Uri": "https://us-3.rightscale.com/api/clouds/1/instances/2ABI92BVRUSJ7/terminate",
+    "Uri": "https://us-3.rightscale.com/api/clouds/1/instances/7N5SKECNTH2D3/terminate",
     "ReqHeader": {
       "X-Api-Version": [
         "1.5"
@@ -1188,7 +1188,7 @@
     "Status": 204,
     "RespHeader": {
       "Date": [
-        "Thu, 02 Apr 2015 06:55:31 GMT"
+        "Thu, 02 Apr 2015 22:40:49 GMT"
       ],
       "Status": [
         "204 No Content"
@@ -1202,14 +1202,14 @@
   "CmdArgs": [
     "--key",
     "test-key",
-    "delete",
-    "/api/deployments/501076003"
+    "destroy",
+    "/api/deployments/501199003"
   ],
   "ExitCode": 0,
   "Stdout": "",
   "RR": {
     "Verb": "DELETE",
-    "Uri": "https://us-3.rightscale.com/api/deployments/501076003",
+    "Uri": "https://us-3.rightscale.com/api/deployments/501199003",
     "ReqHeader": {
       "X-Api-Version": [
         "1.5"
@@ -1219,7 +1219,7 @@
     "Status": 204,
     "RespHeader": {
       "Date": [
-        "Thu, 02 Apr 2015 06:55:33 GMT"
+        "Thu, 02 Apr 2015 22:40:51 GMT"
       ],
       "Status": [
         "204 No Content"
