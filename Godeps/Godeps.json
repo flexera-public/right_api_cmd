@@ -1,10 +1,15 @@
 {
-	"ImportPath": "github.com/rightscale/rightlink_cmd",
+	"ImportPath": "rs/right_api_cmd",
 	"GoVersion": "go1.4",
 	"Deps": [
 		{
 			"ImportPath": "github.com/alecthomas/units",
 			"Rev": "6b4e7dc5e3143b85ea77909c72caf89416fc2915"
+		},
+		{
+			"ImportPath": "github.com/coddingtonbear/go-simplejson",
+			"Comment": "v0.4.3-16-ga582018",
+			"Rev": "a582018feafb39c4884d1b03cad98b91e2804276"
 		},
 		{
 			"ImportPath": "github.com/jmoiron/jsonq",
@@ -19,6 +24,10 @@
 			"ImportPath": "github.com/onsi/gomega",
 			"Comment": "v1.0-26-gdc751ce",
 			"Rev": "dc751ce5f266d83c26fae5c0a9093973b29cb61d"
+		},
+		{
+			"ImportPath": "github.com/rightscale/go-jsonselect",
+			"Rev": "99937931155dde6571d3e8cbab12447d208af785"
 		},
 		{
 			"ImportPath": "gopkg.in/alecthomas/kingpin.v1",

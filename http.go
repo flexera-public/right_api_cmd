@@ -372,7 +372,7 @@ func (c *client) Do(method string, uri string, args []string, contentType, conte
 
 	try := 1
 	for {
-		fmt.Fprintf(os.Stderr, "HTTP.DO: %s %s\n", req.Method, req.URL)
+		//fmt.Fprintf(os.Stderr, "HTTP.DO: %s %s\n", req.Method, req.URL)
 		// perform the request
 		var res *http.Response
 		res, err = c.cl.Do(req)

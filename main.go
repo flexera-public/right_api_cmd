@@ -12,8 +12,8 @@ import (
 	"regexp"
 	"runtime"
 
-	"github.com/coddingtonbear/go-jsonselect"
 	"github.com/jmoiron/jsonq"
+	"github.com/rightscale/go-jsonselect"
 	"gopkg.in/alecthomas/kingpin.v1"
 )
 
@@ -252,8 +252,8 @@ func main() {
 		recordToFile(*recordFile, ReqResp)
 	}
 
-	fmt.Fprintf(os.Stderr, stderr)
-	fmt.Fprintf(osStdout, stdout)
+	fmt.Fprint(os.Stderr, stderr)
+	fmt.Fprint(osStdout, stdout)
 	osExit(exit)
 }
 
@@ -285,7 +285,7 @@ func doOutput(xFlags int, selectOne bool, selectExpr string, resp *Response, js 
 		return "", err.Error(), 1
 	}
 
-	if selectOne {
+	if selectOne { // --x1 flag, really
 		if len(values) == 0 {
 			return "", fmt.Sprintf("No value could be selected"), 1
 			//return "", fmt.Sprintf("No value could be selected, result was: <<%s>>", js), 1
@@ -293,8 +293,21 @@ func doOutput(xFlags int, selectOne bool, selectExpr string, resp *Response, js 
 			return "", fmt.Sprintf("Multiple values selected"), 1
 			//return "", fmt.Sprintf("Multiple values selected, result was: <<%s>>", js), 1
 		}
-	}
-	if *xj != "" {
+		switch v := values[0].(type) {
+		case nil:
+			return "", "", 0
+		case bool, float64, string:
+			return fmt.Sprint(v), "", 0
+		default:
+			js, err := json.Marshal(v)
+			if err != nil {
+				return "", fmt.Sprintf("Error printing selected value: %s",
+					err.Error()), 1
+				return string(js), "", 0
+			}
+			return string(js), "", 0
+		}
+	} else if *xj != "" { // --xj flag
 		// print array of json values
 		js, err := json.Marshal(values)
 		if err != nil {
@@ -302,7 +315,7 @@ func doOutput(xFlags int, selectOne bool, selectExpr string, resp *Response, js 
 				err.Error()), 1
 		}
 		return string(js), "", 0
-	} else {
+	} else { // --xm flag
 		// print one value per line
 		stdout := ""
 		for _, v := range values {
@@ -311,11 +324,7 @@ func doOutput(xFlags int, selectOne bool, selectExpr string, resp *Response, js 
 				return "", fmt.Sprintf("Error printing selected value: %s",
 					err.Error()), 1
 			}
-			if len(stdout) != 0 {
-				stdout += "\n" + string(js)
-			} else {
-				stdout = string(js)
-			}
+			stdout += string(js) + "\n"
 		}
 		return stdout, "", 0
 	}
@@ -375,7 +384,11 @@ func doRequest(resourceHref, actionName string, arguments []string) (*Response, 
 
 	// perform the request
 	resp, err := rightscale().Do(method, resourceHref, arguments, "", "")
-	kingpin.FatalIfError(err, "")
+	if resp == nil {
+		kingpin.FatalIfError(err, "")
+	} else {
+		kingpin.FatalIfError(err, resp.errorMessage)
+	}
 
 	// produce JSON
 	js := []byte("")
