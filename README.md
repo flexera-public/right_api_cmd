@@ -7,13 +7,14 @@ from the command line, either interactively or in shell scripts.
 - Master: [![Build Status](https://travis-ci.org/rightscale/right_api_cmd.svg?branch=master)](https://travis-ci.org/rightscale/right_api_cmd)
   ![Code Coverage](https://s3.amazonaws.com/rs-code-coverage/right_api_cmd/cc_badge_master.svg)
 
-Warning
+Try [github.com/rightscale/rsc] first
 -------
 
+Please give [https://github.com/rightscale/rsc] a try over right_api_cmd.
 This command line client is very simple and just passes what's on the command line through to the
 web server. It's great if you want to do some non-standard stuff or you want to use the source
 code to hack something up. If you're "just" wanting to issue API requests to one of the
-RightScale APIs please use [rsc](http://github.com/rightscale/rsc) instead, which has
+RightScale APIs please use [rsc](https://github.com/rightscale/rsc) instead, which has
 virtually the same command line but includes built-in help and supports all RightScale APIs.
 
 Synopsis
